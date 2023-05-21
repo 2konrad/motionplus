@@ -557,7 +557,7 @@ static void event_extpipe_put(ctx_dev *cam, motion_event evnt
 
     /* Check use_extpipe enabled and ext_pipe not NULL */
     if ((cam->conf->movie_extpipe_use) && (cam->extpipe != NULL)) {
-        MOTPLS_LOG(DBG, TYPE_EVENTS, NO_ERRNO, _("Using extpipe"));
+        MOTPLS_LOG(DBG, TYPE_EVENTS, NO_ERRNO, "Using extpipe img size %d, shot: %d", cam->imgs.size_high, img_data->shot );
         passthrough = mycheck_passthrough(cam);
         /* Check that is open */
         if ((cam->extpipe_open) && (fileno(cam->extpipe) > 0)) {
