@@ -770,15 +770,6 @@ int cls_libcam::cam_next(ctx_image_data *img_data)
     if (started_cam == false) {
         return CAPTURE_FAILURE;
     }
-    
-    static char timestring[16];
-    time_t now = 0;
-
-    now = time(0);
-    strftime(timestring, 16, "%b %d %H:%M:%S", localtime(&now));
-    
-    
-
 
     /* Allow time for request to finish.*/
     indx=0;
@@ -786,7 +777,6 @@ int cls_libcam::cam_next(ctx_image_data *img_data)
         SLEEP(0,2000)
         indx++;
     }
-    MOTPLS_LOG(DBG, TYPE_VIDEO, NO_ERRNO, " Captured pic from cam at %s request que ? %d", timestring, req_queue.empty());
 
     if (req_queue.empty() == false) {
         Request *request = this->req_queue.front();
@@ -798,7 +788,6 @@ int cls_libcam::cam_next(ctx_image_data *img_data)
         request->reuse(Request::ReuseBuffers);
         req_add(request);
         return CAPTURE_SUCCESS;
-        MOTPLS_LOG(DBG, TYPE_VIDEO, NO_ERRNO, " Captured pic from cam at %s", timestring);
 
     } else {
         return CAPTURE_FAILURE;

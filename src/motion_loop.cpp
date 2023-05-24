@@ -115,12 +115,22 @@ static void mlp_ring_process_debug(ctx_dev *cam)
         t = "Other";
     }
 
-    mystrftime(cam, tmp, sizeof(tmp), "%H%M%S-%q",
+    mystrftime(cam, tmp, sizeof(tmp), "Real time img %H%M%S-%q",
                 &cam->imgs.image_ring[cam->imgs.ring_out].imgts, NULL, 0);
     draw_text(cam->imgs.image_ring[cam->imgs.ring_out].image_norm,
                 cam->imgs.width, cam->imgs.height, 10, 20, tmp, cam->text_scale);
     draw_text(cam->imgs.image_ring[cam->imgs.ring_out].image_norm,
-                cam->imgs.width, cam->imgs.height, 10, 30, t, cam->text_scale);
+                cam->imgs.width, cam->imgs.height, 10, 40, t, cam->text_scale);
+                
+    mystrftime(cam, tmp, sizeof(tmp), "Mono time img: %H%M%S-%q",
+                &cam->imgs.image_ring[cam->imgs.ring_out].monots, NULL, 0);
+    draw_text(cam->imgs.image_ring[cam->imgs.ring_out].image_norm,
+                cam->imgs.width, cam->imgs.height, 10, 60, tmp, cam->text_scale);
+                
+    mystrftime(cam, tmp, sizeof(tmp), "cam curr ts mono: %H%M%S-%q",
+                &cam->frame_curr_ts, NULL, 0);
+    draw_text(cam->imgs.image_ring[cam->imgs.ring_out].image_norm,
+                cam->imgs.width, cam->imgs.height, 10, 80, tmp, cam->text_scale);
 }
 
 /* Process the entire image ring */
@@ -1014,7 +1024,7 @@ static void mlp_overlay(ctx_dev *cam)
         mystrftime(cam, tmp, sizeof(tmp), cam->conf->text_left.c_str(),
                    &cam->current_image->imgts, NULL, 0);
         draw_text(cam->current_image->image_norm, cam->imgs.width, cam->imgs.height,
-                  10, cam->imgs.height - (10 * cam->text_scale), tmp, cam->text_scale);
+                  10, cam->imgs.height - (20 * cam->text_scale), tmp, cam->text_scale);
     }
 
     /* Add text in lower right corner of the pictures */
@@ -1022,7 +1032,7 @@ static void mlp_overlay(ctx_dev *cam)
         mystrftime(cam, tmp, sizeof(tmp), cam->conf->text_right.c_str(),
                    &cam->current_image->imgts, NULL, 0);
         draw_text(cam->current_image->image_norm, cam->imgs.width, cam->imgs.height,
-                  cam->imgs.width - 10, cam->imgs.height - (10 * cam->text_scale),
+                  cam->imgs.width - 10, cam->imgs.height - (20 * cam->text_scale),
                   tmp, cam->text_scale);
     }
 }

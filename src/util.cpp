@@ -289,6 +289,10 @@ static void mystrftime_long (const ctx_dev *cam,
         snprintf (out, PATH_MAX, "%*s", width, cam->hostname);
         return;
     }
+	if (SPECIFIERWORD("frame_wait")) {
+        snprintf (out, PATH_MAX, "%*l", width, cam->frame_wait[0]);
+        return;
+    }
     if (SPECIFIERWORD("fps")) {
         sprintf(out, "%*d", width, cam->movie_fps);
         return;
