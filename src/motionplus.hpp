@@ -467,6 +467,7 @@ struct ctx_dev {
 
     int                     movie_fps;
     bool                    movie_passthrough;
+    pid_t                   util_exec_command_child_PID;
 
     char                    extpipe_filename[PATH_MAX];
     char                    extpipe_cmdline[PATH_MAX];

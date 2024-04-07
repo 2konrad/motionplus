@@ -112,6 +112,7 @@
         std::string     on_secondary_detect;
         std::string     on_action_user;
         std::string     on_sound_alert;
+        std::string     on_lightswitch;
 
         /* Picture output configuration parameters */
         std::string     picture_output;

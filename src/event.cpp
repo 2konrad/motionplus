@@ -104,6 +104,13 @@ static void on_event_end_command(ctx_dev *cam)
     }
 }
 
+static void on_lightswitch_command(ctx_dev *cam)
+{
+    if (cam->conf->on_lightswitch != "") {
+        util_exec_command(cam, cam->conf->on_lightswitch.c_str(), NULL);
+    }
+}
+
 static void event_stream_put(ctx_dev *cam)
 {
     webu_stream_getimg(cam);
@@ -560,6 +567,10 @@ struct event_handlers event_handlers[] = {
     {
     EVENT_SECDETECT,
     event_secondary_detect
+    },
+    {
+    EVENT_LIGHTSWITCH,
+    on_lightswitch_command
     },
     {(motion_event)0, NULL}
 };

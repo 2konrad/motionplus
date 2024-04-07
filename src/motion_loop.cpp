@@ -126,6 +126,8 @@ static void mlp_ring_process(ctx_dev *cam)
 {
     ctx_image_data *saved_current_image = cam->current_image;
 
+    int ring_process_loop = 0;
+
     do {
         if ((cam->imgs.image_ring[cam->imgs.ring_out].flags & (IMAGE_SAVE | IMAGE_SAVED)) != IMAGE_SAVE) {
             break;
@@ -160,7 +162,9 @@ static void mlp_ring_process(ctx_dev *cam)
             cam->imgs.ring_out = 0;
         }
 
-    } while (cam->imgs.ring_out != cam->imgs.ring_in);
+        ring_process_loop++;
+
+    } while ((cam->imgs.ring_out != cam->imgs.ring_in) && (ring_process_loop < MAX_RING_PROCESS_LOOPS));
 
     cam->current_image = saved_current_image;
 }
@@ -176,6 +180,9 @@ static void mlp_info_reset(ctx_dev *cam)
 }
 
 /* Process the motion detected items*/
+
+/// @brief Process the motion detected items: if IMAGE_TRIGGER: event start, 
+/// @param cam 
 static void mlp_detected_trigger(ctx_dev *cam)
 {
     time_t raw_time;
@@ -192,8 +199,8 @@ static void mlp_detected_trigger(ctx_dev *cam)
 
             time(&raw_time);
             localtime_r(&raw_time, &evt_tm);
-            sprintf(cam->eventid, "%05d", cam->device_id);
-            strftime(cam->eventid+5, 15, "%Y%m%d%H%M%S", &evt_tm);
+            //sprintf(cam->eventid, "%05d", cam->device_id);
+            strftime(cam->eventid, 13, "%m%d_%H%M_%S", &evt_tm);
 
             MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO, _("Motion detected - starting event %d"),
                        cam->event_nr);
@@ -238,6 +245,10 @@ static void mlp_track_move(ctx_dev *cam)
 }
 
 /* motion detected */
+
+
+/// @brief motion detected: call mlp_detected_trigger, mlp_track_move
+/// @param cam 
 static void mlp_detected(ctx_dev *cam)
 {
     ctx_config *conf = cam->conf;
@@ -740,6 +751,14 @@ static void mlp_areadetect(ctx_dev *cam)
             }
         }
     }
+
+    // Easy area detect, if center of movement (location) ist in right side of picture
+    if ((cam->current_image->location.x > 320) && 
+        (cam->current_image->flags & IMAGE_TRIGGER)){
+        cam->areadetect_eventnbr = cam->event_nr;
+        MOTPLS_LOG( NTC, TYPE_ALL, NO_ERRNO
+                        ,_("Right side event triggered in Event  %d ."), cam->event_nr);
+    }
 }
 
 /* Prepare for the next iteration of loop*/
@@ -950,7 +969,12 @@ static void mlp_tuning(ctx_dev *cam)
     alg_tune_smartmask(cam);
 
 
+    if (cam->frame_skip) {
+        /*reset reference frame as long as lightswitch ongoing*/
+        alg_update_reference_frame(cam, RESET_REF_FRAME);
+    }else{
     alg_update_reference_frame(cam, UPDATE_REF_FRAME);
+    }
 
     cam->previous_diffs = cam->current_image->diffs;
     cam->previous_location_x = cam->current_image->location.x;
@@ -1018,14 +1042,14 @@ static void mlp_overlay(ctx_dev *cam)
     if (cam->conf->text_left != "") {
         mystrftime(cam, tmp, sizeof(tmp), cam->conf->text_left.c_str(), NULL);
         draw_text(cam->current_image->image_norm, cam->imgs.width, cam->imgs.height,
-                  10, cam->imgs.height - (10 * cam->text_scale), tmp, cam->text_scale);
+                  10, cam->imgs.height - (40 * cam->text_scale), tmp, cam->text_scale);
     }
 
     /* Add text in lower right corner of the pictures */
     if (cam->conf->text_right != "") {
         mystrftime(cam, tmp, sizeof(tmp), cam->conf->text_right.c_str(), NULL);
         draw_text(cam->current_image->image_norm, cam->imgs.width, cam->imgs.height,
-                  cam->imgs.width - 10, cam->imgs.height - (10 * cam->text_scale),
+                  cam->imgs.width - 10, cam->imgs.height - (40 * cam->text_scale),
                   tmp, cam->text_scale);
     }
 }
@@ -1058,6 +1082,11 @@ static void mlp_actions_emulate(ctx_dev *cam)
 }
 
 /* call the actions */
+
+
+/// @brief call the actions: check if last frames in image-ring have motion -> set entire image ring to IMAGE_SAVE
+/// call mlp_detected(cam);
+/// @param cam 
 static void mlp_actions_motion(ctx_dev *cam)
 {
     int indx, frame_count = 0;
@@ -1154,6 +1183,9 @@ static void mlp_actions_event(ctx_dev *cam)
 
 }
 
+/// @brief Set IMAGE_MOTION for current image, call mlp_actions_motion(), mlp_areadetect(), 
+/// mlp_ring_process(), mlp_actions_event
+/// @param cam 
 static void mlp_actions(ctx_dev *cam)
 {
      if ((cam->current_image->diffs > cam->threshold) &&
@@ -1449,7 +1481,7 @@ void *mlp_main(void *arg)
         mlp_retry(cam);
         mlp_capture(cam);
         mlp_detection(cam);
-        mlp_tuning(cam);
+        mlp_tuning(cam); // Location finding
         mlp_overlay(cam);
         mlp_actions(cam);
         mlp_setupmode(cam);

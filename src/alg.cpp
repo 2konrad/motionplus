@@ -21,6 +21,7 @@
 #include "alg.hpp"
 #include "draw.hpp"
 #include "logger.hpp"
+#include "event.hpp"
 
 #define MAX2(x, y) ((x) > (y) ? (x) : (y))
 #define MAX3(x, y, z) ((x) > (y) ? ((x) > (z) ? (x) : (z)) : ((y) > (z) ? (y) : (z)))
@@ -631,6 +632,7 @@ static void alg_diff_nomask(ctx_dev *cam)
     int diffs = 0, diffs_net = 0;
     int noise = cam->noise;
     int lrgchg = cam->conf->threshold_ratio_change;
+    long sum_currdiff = 0;   // to see sum of difference in brightness for lightswitch
 
     memset(out + imgsz, 128, (imgsz / 2));
     memset(out, 0, imgsz);
@@ -649,8 +651,10 @@ static void alg_diff_nomask(ctx_dev *cam)
         out++;
         ref++;
         new_img++;
+        sum_currdiff -= curdiff;
     }
     cam->current_image->diffs_raw = diffs;
+    cam->current_image->diffs_raw = sum_currdiff / imgsz;
     cam->current_image->diffs = diffs;
     cam->imgs.image_motion.imgts = cam->current_image->imgts;
 
@@ -895,12 +899,25 @@ static void alg_lightswitch(ctx_dev *cam)
 
     if (cam->conf->lightswitch_percent >= 1 && !cam->lost_connection) {
         if (cam->current_image->diffs > (cam->imgs.motionsize * cam->conf->lightswitch_percent / 100)) {
+            
+            //check if already a MOTION was detected - no lightswitch in current MOTION
+            int motion = 0;
+            int indx;
+            for (indx = 0; indx < cam->conf->minimum_motion_frames; indx++) {
+                if (cam->imgs.image_ring[indx].flags & IMAGE_MOTION) {
+                    motion = 1;
+                }
+            }
             MOTPLS_LOG(INF, TYPE_ALL, NO_ERRNO, _("Lightswitch detected"));
+            if (motion == 0){
+                MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO, _("Lightswitch detected and no IMAGE_MOTION"));
             if (cam->frame_skip < (unsigned int)cam->conf->lightswitch_frames) {
                 cam->frame_skip = (unsigned int)cam->conf->lightswitch_frames;
             }
+                event(cam, EVENT_LIGHTSWITCH);
             cam->current_image->diffs = 0;
             alg_update_reference_frame(cam, RESET_REF_FRAME);
+            }
         }
     }
 }
@@ -939,16 +956,19 @@ void alg_update_reference_frame(ctx_dev *cam, int action)
         for (i = cam->imgs.motionsize; i > 0; i--) {
             /* Exclude pixels from ref frame well below noise level. */
             if (((int)(abs(*ref - *image_virgin)) > threshold_ref) && (*smartmask)) {
-                if (*ref_dyn == 0) { /* Always give new pixels a chance. */
+                if (false) {   //(*ref_dyn == 0) { /* Always give new pixels a chance. */
                     *ref_dyn = 1;
                 } else if (*ref_dyn > accept_timer) { /* Include static Object after some time. */
                     *ref_dyn = 0;
                     *ref = *image_virgin;
-                } else if (*out) {
+                } else if ((int)(abs((int) *ref - (int) *image_virgin)) > cam->noise) {  //(*out) {
                     (*ref_dyn)++; /* Motionpixel? Keep excluding from ref frame. */
                 } else {
                     *ref_dyn = 0; /* Nothing special - release pixel. */
-                    *ref = (unsigned char)((*ref + *image_virgin) / 2);
+                    //*ref = (unsigned char)((*ref + *image_virgin) / 2);
+                    if (cam->shots_mt == 0){                                                                 
+                        *ref = (unsigned char)( (((int) *ref) * 3 + (int) *image_virgin) / 4); 
+                    }
                 }
 
             } else {  /* No motion: copy to ref frame. */

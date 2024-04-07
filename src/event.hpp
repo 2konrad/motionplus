@@ -39,6 +39,7 @@ typedef enum {
     EVENT_MOVIE_END,
     EVENT_SECDETECT,
     EVENT_LAST,
+    EVENT_LIGHTSWITCH
 } motion_event;
 
 typedef void(* event_handler)(ctx_dev *cam);

@@ -469,7 +469,9 @@ void cls_libcam::cam_config_control_item(char *pname, char *pvalue)
     if (mystrceq(pname,"TestPatternMode")) {
         controls.set(controls::draft::TestPatternMode, atoi(pvalue));
     }
-
+    if (mystrceq(pname,"HdrMode")) {
+        controls.set(controls::HdrMode, atoi(pvalue));
+    }
 }
 
 void cls_libcam:: cam_config_controls()
@@ -574,13 +576,25 @@ int cls_libcam::cam_start_config()
 
     MOTPLS_LOG(NTC, TYPE_VIDEO, NO_ERRNO, "Starting.");
 
-    config = camera->generateConfiguration({ StreamRole::Viewfinder });
+    //config = camera->generateConfiguration({ StreamRole::Viewfinder });
+    config = camera->generateConfiguration({ StreamRole::VideoRecording , StreamRole::Raw});
 
     config->at(0).pixelFormat = PixelFormat::fromString("YUV420");
 
     config->at(0).size.width = camctx->conf->width;
     config->at(0).size.height = camctx->conf->height;
     config->at(0).bufferCount = 1;
+
+    auto model = camera->properties().get(properties::Model);
+    if (("imx708_wide" == *model) || ("imx708" == *model)) 
+    {
+        config->at(1).size.width = 2304;
+        config->at(1).size.height = 1296;
+        config->at(1).pixelFormat = PixelFormat::fromString("YUV420");
+        config->at(1).bufferCount = 1;
+    }
+    //config->sensorConfig->outputSize = libcamera::Size(2304, 1296);
+    //config->sensorConfig->bitDepth = 10;
 
     retcd = config->validate();
     if (retcd == CameraConfiguration::Adjusted) {

@@ -333,6 +333,16 @@ static void mystrftime_long (const ctx_dev *cam,
         return;
     }
 
+    // tell if the current event has triggered the area detect
+    if (SPECIFIERWORD("areadetect")) {
+        if (cam->areadetect_eventnbr == cam->event_nr) {
+            sprintf(out, "%*s", width, "Y");
+        } else {
+            sprintf(out, "%*s", width, "N");
+        }
+        return;
+    }
+
     if (SPECIFIERWORD("trig_freq")) {
         if (cam->snd_info != NULL) {
             snprintf (out, PATH_MAX, "%*s", width, cam->snd_info->trig_freq.c_str() );
@@ -443,6 +453,11 @@ size_t mystrftime(ctx_dev *cam, char *s, size_t max
 
             case 'D': // diffs
                 sprintf(tempstr, "%*d", width, img.diffs);
+                break;
+
+            case 'd': // diffs avg
+                sprintf(tempstr, "%s", (img.diffs_raw>0) ? "AN" : "AUS");
+// (img.diffs_raw>0) ? 'AN' :
                 break;
 
             case 'N': // noise
@@ -1302,8 +1317,12 @@ void util_exec_command(ctx_dev *cam, const char *command, char *filename)
 
     mystrftime(cam, stamp, sizeof(stamp), command, filename);
 
-    pid = fork();
-    if (!pid) {
+    //wait for and stop last fork process, if if was ever set 
+    if (cam->util_exec_command_child_PID) {
+        waitpid(cam->util_exec_command_child_PID, NULL, 0);
+    }
+    cam->util_exec_command_child_PID = fork();
+    if (!cam->util_exec_command_child_PID) {
         /* Detach from parent */
         setsid();
 
@@ -1314,13 +1333,6 @@ void util_exec_command(ctx_dev *cam, const char *command, char *filename)
             ,_("Unable to start external command '%s'"), stamp);
 
         exit(1);
-    }
-
-    if (pid > 0) {
-        waitpid(pid, NULL, 0);
-    } else {
-        MOTPLS_LOG(ALR, TYPE_EVENTS, SHOW_ERRNO
-            ,_("Unable to start external command '%s'"), stamp);
     }
 
     MOTPLS_LOG(DBG, TYPE_EVENTS, NO_ERRNO

@@ -119,6 +119,7 @@ ctx_parm config_parms[] = {
     {"on_secondary_detect",       PARM_TYP_STRING, PARM_CAT_08, WEBUI_LEVEL_RESTRICTED },
     {"on_action_user",            PARM_TYP_STRING, PARM_CAT_08, WEBUI_LEVEL_RESTRICTED },
     {"on_sound_alert",            PARM_TYP_STRING, PARM_CAT_08, WEBUI_LEVEL_RESTRICTED },
+    {"on_lightswitch",            PARM_TYP_STRING, PARM_CAT_08, WEBUI_LEVEL_RESTRICTED },
 
     {"picture_output",            PARM_TYP_LIST,   PARM_CAT_09, WEBUI_LEVEL_LIMITED },
     {"picture_output_motion",     PARM_TYP_LIST,   PARM_CAT_09, WEBUI_LEVEL_LIMITED },
@@ -1683,6 +1684,19 @@ static void conf_edit_on_sound_alert(ctx_config *conf, std::string &parm, enum P
     MOTPLS_LOG(DBG, TYPE_ALL, NO_ERRNO,"%s:%s","on_sound_alert",_("on_sound_alert"));
 }
 
+static void conf_edit_on_lightswitch(ctx_config *conf, std::string &parm, enum PARM_ACT pact)
+{
+    if (pact == PARM_ACT_DFLT) {
+        conf->on_lightswitch = "";
+    } else if (pact == PARM_ACT_SET) {
+        conf->on_lightswitch = parm;
+    } else if (pact == PARM_ACT_GET) {
+        parm = conf->on_lightswitch;
+    }
+    return;
+    MOTPLS_LOG(DBG, TYPE_ALL, NO_ERRNO,"%s:%s","on_lightswitch","on_lightswitch");
+}
+
 static void conf_edit_picture_output(ctx_config *conf, std::string &parm, enum PARM_ACT pact)
 {
     if (pact == PARM_ACT_DFLT) {
@@ -3140,6 +3154,7 @@ static void conf_edit_cat08(ctx_config *conf, std::string parm_nm
     } else if (parm_nm == "on_secondary_detect") {     conf_edit_on_secondary_detect(conf, parm_val, pact);
     } else if (parm_nm == "on_action_user") {          conf_edit_on_action_user(conf, parm_val, pact);
     } else if (parm_nm == "on_sound_alert") {          conf_edit_on_sound_alert(conf, parm_val, pact);
+    } else if (parm_nm == "on_lightswitch") {          conf_edit_on_lightswitch(conf, parm_val, pact);
     }
 
 }
