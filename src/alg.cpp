@@ -949,6 +949,10 @@ void alg_update_reference_frame(ctx_dev *cam, int action)
         /* Match rate limit */
         accept_timer /= (cam->lastrate / 3);
     }
+    accept_timer = cam->conf->static_object_time * 3;
+    if (!cam->detecting_motion) {
+        accept_timer = accept_timer * 0.8;
+    }
 
     if (action == UPDATE_REF_FRAME) { /* Black&white only for better performance. */
         threshold_ref = cam->noise * EXCLUDE_LEVEL_PERCENT / 100;
