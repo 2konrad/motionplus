@@ -577,7 +577,8 @@ int cls_libcam::cam_start_config()
     MOTPLS_LOG(NTC, TYPE_VIDEO, NO_ERRNO, "Starting.");
 
     //config = camera->generateConfiguration({ StreamRole::Viewfinder });
-    config = camera->generateConfiguration({ StreamRole::VideoRecording , StreamRole::Raw});
+    //config = camera->generateConfiguration({ StreamRole::VideoRecording , StreamRole::Raw});
+    config = camera->generateConfiguration({ StreamRole::VideoRecording , StreamRole::Viewfinder}); 
 
     config->at(0).pixelFormat = PixelFormat::fromString("YUV420");
 
@@ -847,13 +848,17 @@ int cls_libcam::cam_next(ctx_image_data *img_data)
     if (started_cam == false) {
         return CAPTURE_FAILURE;
     }
-
+    //struct timespec ts2;
+    //clock_gettime(CLOCK_REALTIME, &ts2);
+    //MOTPLS_LOG(NTC, TYPE_VIDEO, NO_ERRNO, "before request %03ld ",ts2.tv_nsec/1000000);
     /* Allow time for request to finish.*/
     indx=0;
     while ((req_queue.empty() == true) && (indx < 50)) {
-        SLEEP(0,2000)
+        SLEEP(0,10000000)
         indx++;
     }
+    //clock_gettime(CLOCK_REALTIME, &ts2);
+    //MOTPLS_LOG(NTC, TYPE_VIDEO, NO_ERRNO, "after request %03ld - %d",ts2.tv_nsec/1000000, indx);
 
     if (req_queue.empty() == false) {
         Request *request = this->req_queue.front();

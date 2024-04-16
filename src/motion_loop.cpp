@@ -892,6 +892,7 @@ static int mlp_capture(ctx_dev *cam)
             (cam->missing_frame_counter <
                 (cam->conf->device_tmo * cam->conf->framerate))) {
             memcpy(cam->current_image->image_norm, cam->imgs.image_vprvcy, cam->imgs.size_norm);
+            MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO, "Memcopy frame");
         } else {
             cam->lost_connection = 1;
             if (cam->device_status == STATUS_OPENED) {
@@ -1150,6 +1151,7 @@ static void mlp_actions_event(ctx_dev *cam)
             }
             event(cam, EVENT_END);
             dbse_exec(cam, NULL, "event_end");
+            alg_update_reference_frame(cam,RESET_REF_FRAME);
 
             mlp_track_center(cam);
 
@@ -1480,8 +1482,8 @@ void *mlp_main(void *arg)
         mlp_resetimages(cam);
         mlp_retry(cam);
         mlp_capture(cam);
-        mlp_detection(cam);
-        mlp_tuning(cam); // Location finding
+        mlp_detection(cam); //diff
+        mlp_tuning(cam); // Location finding, upd ref
         mlp_overlay(cam);
         mlp_actions(cam);
         mlp_setupmode(cam);

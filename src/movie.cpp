@@ -248,9 +248,11 @@ static int movie_encode_video(ctx_movie *movie)
         retcd = avcodec_receive_packet(movie->ctx_codec, movie->pkt);
         if (retcd == AVERROR(EAGAIN)) {
             //Buffered packet.  Throw special return code
+            MOTPLS_LOG(ERR, TYPE_ENCODER, NO_ERRNO,"Buffered packet");
             movie_free_pkt(movie);
             return -2;
         }
+        //MOTPLS_LOG(DBG, TYPE_ENCODER, NO_ERRNO," packet size %d",movie->pkt->size);
         if (retcd < 0 ) {
             av_strerror(retcd, errstr, sizeof(errstr));
             MOTPLS_LOG(ERR, TYPE_ENCODER, NO_ERRNO
@@ -419,6 +421,7 @@ static int movie_set_quality(ctx_movie *movie)
             av_opt_set(movie->ctx_codec->priv_data, "crf", crf, 0);
             av_opt_set(movie->ctx_codec->priv_data, "tune", "zerolatency", 0);
             av_opt_set(movie->ctx_codec->priv_data, "preset", "superfast",0);
+            //MOTPLS_LOG(INF, TYPE_ENCODER, NO_ERRNO,"%s codec crf: %s", movie->codec->name, crf);
         }
     } else {
         /* The selection of 8000 is a subjective number based upon viewing output files */
@@ -510,7 +513,7 @@ static int movie_set_codec(ctx_movie *movie)
         } else if (movie->fps > 30) {
             movie->ctx_codec->gop_size = 15;
         } else {
-            movie->ctx_codec->gop_size = (movie->fps / 2);
+            movie->ctx_codec->gop_size = 20;
         }
         movie->gop_cnt = movie->ctx_codec->gop_size - 1;
     }

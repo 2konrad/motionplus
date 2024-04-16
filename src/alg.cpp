@@ -672,6 +672,7 @@ static void alg_diff_mask(ctx_dev *cam)
     unsigned char *out  = cam->imgs.image_motion.image_norm;
     unsigned char *mask = cam->imgs.mask;
     unsigned char *new_img = cam->imgs.image_vprvcy;
+    long sum_currdiff = 0;   // to see sum of difference in brightness for lightswitch
 
     int i, curdiff;
     int imgsz = cam->imgs.motionsize;
@@ -691,6 +692,7 @@ static void alg_diff_mask(ctx_dev *cam)
         if (abs(curdiff) > noise) {
             *out = *new_img;
             diffs++;
+            sum_currdiff -= curdiff;
             if (curdiff > lrgchg) {
                 diffs_net++;
             } else if (curdiff < -lrgchg) {
@@ -704,6 +706,7 @@ static void alg_diff_mask(ctx_dev *cam)
         mask++;
     }
     cam->current_image->diffs_raw = diffs;
+    cam->current_image->diffs_raw = sum_currdiff / diffs;
     cam->current_image->diffs = diffs;
     cam->imgs.image_motion.imgts = cam->current_image->imgts;
 
@@ -940,9 +943,11 @@ void alg_update_reference_frame(ctx_dev *cam, int action)
     int accept_timer = cam->lastrate * cam->conf->static_object_time;
     int i, threshold_ref;
     int *ref_dyn = cam->imgs.ref_dyn;
+    int noise = (cam->noise) ;
     unsigned char *image_virgin = cam->imgs.image_vprvcy;
     unsigned char *ref = cam->imgs.ref;
     unsigned char *smartmask = cam->imgs.smartmask_final;
+    unsigned char *mask = cam->imgs.mask;
     unsigned char *out = cam->imgs.image_motion.image_norm;
 
     if (cam->lastrate > 5) {
@@ -954,35 +959,44 @@ void alg_update_reference_frame(ctx_dev *cam, int action)
         accept_timer = accept_timer * 0.8;
     }
 
-    if (action == UPDATE_REF_FRAME) { /* Black&white only for better performance. */
+    else if (action == UPDATE_REF_FRAME) { /* Black&white only for better performance. */
         threshold_ref = cam->noise * EXCLUDE_LEVEL_PERCENT / 100;
 
         for (i = cam->imgs.motionsize; i > 0; i--) {
             /* Exclude pixels from ref frame well below noise level. */
-            if (((int)(abs(*ref - *image_virgin)) > threshold_ref) && (*smartmask)) {
+            if (*mask) {
+            if (((int)(abs(*ref - *image_virgin)) > threshold_ref) && (*smartmask) ) {
                 if (false) {   //(*ref_dyn == 0) { /* Always give new pixels a chance. */
                     *ref_dyn = 1;
                 } else if (*ref_dyn > accept_timer) { /* Include static Object after some time. */
-                    *ref_dyn = 0;
+                    //*ref_dyn = 0;
+                    if ((*ref_dyn) > 0) {(*ref_dyn)--;(*ref_dyn)--;}
                     *ref = *image_virgin;
-                } else if ((int)(abs((int) *ref - (int) *image_virgin)) > cam->noise) {  //(*out) {
+                } else if ((int)(abs((int) *ref - (int) *image_virgin)) > noise) {  //(*out) {
                     (*ref_dyn)++; /* Motionpixel? Keep excluding from ref frame. */
+
                 } else {
-                    *ref_dyn = 0; /* Nothing special - release pixel. */
+                    //*ref_dyn = 0; /* Nothing special - release pixel. */
+                    //Not longer as accet time diffrent and not this time diffrent
+                    if ((*ref_dyn) > 0) {(*ref_dyn)--;(*ref_dyn)--;}
                     //*ref = (unsigned char)((*ref + *image_virgin) / 2);
                     if (cam->shots_mt == 0){                                                                 
                         *ref = (unsigned char)( (((int) *ref) * 3 + (int) *image_virgin) / 4); 
                     }
                 }
 
+            }
             } else {  /* No motion: copy to ref frame. */
-                *ref_dyn = 0; /* Reset pixel */
+                //*ref_dyn = 0; /* Reset pixel */
                 *ref = *image_virgin;
+                if ((*ref_dyn) > 0) {(*ref_dyn)--;(*ref_dyn)--;}
+                // check for cam->current_image->diffs
             }
 
             ref++;
             image_virgin++;
             smartmask++;
+            mask++;
             ref_dyn++;
             out++;
         } /* end for i */
@@ -991,7 +1005,7 @@ void alg_update_reference_frame(ctx_dev *cam, int action)
         /* Copy fresh image */
         memcpy(cam->imgs.ref, cam->imgs.image_vprvcy, cam->imgs.size_norm);
         /* Reset static objects */
-        memset(cam->imgs.ref_dyn, 0, cam->imgs.motionsize * sizeof(*cam->imgs.ref_dyn));
+        memset(cam->imgs.ref_dyn, accept_timer * 0.6, cam->imgs.motionsize * sizeof(*cam->imgs.ref_dyn));
     }
 }
 
