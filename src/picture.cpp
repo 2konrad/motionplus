@@ -699,6 +699,10 @@ void pic_init_mask(ctx_dev *cam)
                 ,cam->conf->mask_file.c_str());
         }
     } else {
-        cam->imgs.mask = NULL;
+        //cam->imgs.mask = NULL;
+        //put an empty mask
+        cam->imgs.mask =(unsigned char*) mymalloc((cam->imgs.width * cam->imgs.height  * 3) / 2);
+        memset(cam->imgs.mask, 255,  (cam->imgs.width * cam->imgs.height  * 3) / 2);
+
     }
 }
