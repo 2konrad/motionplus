@@ -258,6 +258,7 @@ struct ctx_image_data {
     unsigned int        flags;          /* See IMAGE_* defines */
     ctx_coord           location;       /* coordinates for center and size of last motion detection*/
     int                 total_labels;
+    int                 accept_average; /*average accept timer for all changed pixels */
 };
 
 struct ctx_images {

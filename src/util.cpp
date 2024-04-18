@@ -457,7 +457,10 @@ size_t mystrftime(ctx_dev *cam, char *s, size_t max
 
             case 'd': // diffs avg
                 sprintf(tempstr, "%s", (img.diffs_raw>0) ? "AN" : "AUS");
-// (img.diffs_raw>0) ? 'AN' :
+                break;
+            
+            case 'a': // accept timer average
+                sprintf(tempstr, "%*d", width, img.accept_average );
                 break;
 
             case 'N': // noise
