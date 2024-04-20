@@ -509,11 +509,11 @@ static int movie_set_codec(ctx_movie *movie)
         movie->ctx_codec->gop_size = 1;
     } else {
         if (movie->fps <= 5) {
-            movie->ctx_codec->gop_size = 1;
+            movie->ctx_codec->gop_size = 30;
         } else if (movie->fps > 30) {
-            movie->ctx_codec->gop_size = 15;
+            movie->ctx_codec->gop_size = 30;
         } else {
-            movie->ctx_codec->gop_size = 20;
+            movie->ctx_codec->gop_size = 30;
         }
         movie->gop_cnt = movie->ctx_codec->gop_size - 1;
     }
