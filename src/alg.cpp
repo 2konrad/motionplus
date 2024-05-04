@@ -1050,9 +1050,9 @@ void alg_update_reference_frame(ctx_dev *cam, int action)
                         *ref = *image_virgin;
                         (*ref_dyn)--;
                     }
-                    if (cam->current_image->diffs == 0   ){
-                        MOTPLS_LOG(INF, TYPE_ALL, NO_ERRNO, "motion at diff 0");
-                    }
+                    // if (cam->current_image->diffs == 0   ){
+                    //     MOTPLS_LOG(INF, TYPE_ALL, NO_ERRNO, "motion at diff 0");
+                    // }
                 } else {
                     //diff<noise
                     // if ( ((*ref_dyn) > accept_timer/2) || 
