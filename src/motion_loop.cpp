@@ -1022,6 +1022,8 @@ static void mlp_overlay(ctx_dev *cam)
         }
         draw_text(cam->current_image->image_norm, cam->imgs.width, cam->imgs.height,
                   cam->imgs.width - 10, 10, tmp, cam->text_scale);
+        draw_text(cam->current_image->image_high, cam->imgs.width_high, cam->imgs.height_high,
+                  cam->imgs.width - 10, 10, tmp, cam->text_scale);
     }
 
     if (cam->motapp->conf->setup_mode ||
@@ -1044,6 +1046,9 @@ static void mlp_overlay(ctx_dev *cam)
         mystrftime(cam, tmp, sizeof(tmp), cam->conf->text_left.c_str(), NULL);
         draw_text(cam->current_image->image_norm, cam->imgs.width, cam->imgs.height,
                   10, cam->imgs.height - (40 * cam->text_scale), tmp, cam->text_scale);
+        draw_text(cam->current_image->image_high, cam->imgs.width_high, cam->imgs.height_high,
+                  10, cam->imgs.height_high - (40 * cam->text_scale), tmp, cam->text_scale);
+                  
     }
 
     /* Add text in lower right corner of the pictures */
@@ -1051,6 +1056,9 @@ static void mlp_overlay(ctx_dev *cam)
         mystrftime(cam, tmp, sizeof(tmp), cam->conf->text_right.c_str(), NULL);
         draw_text(cam->current_image->image_norm, cam->imgs.width, cam->imgs.height,
                   cam->imgs.width - 10, cam->imgs.height - (40 * cam->text_scale),
+                  tmp, cam->text_scale);
+        draw_text(cam->current_image->image_high, cam->imgs.width_high, cam->imgs.height_high,
+                  cam->imgs.width_high - 10, cam->imgs.height_high - (40 * cam->text_scale),
                   tmp, cam->text_scale);
     }
 }

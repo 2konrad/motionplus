@@ -1439,13 +1439,13 @@ void draw_locate(ctx_dev *cam)
     } else if (cam->locate_motion_mode == LOCATE_ON) {
         imgs = &cam->imgs;
         location = &cam->current_image->location;
-        image_norm = cam->current_image->image_norm;
+        image_norm = cam->current_image->image_high;
     } else {
         return;
     }
 
     if (cam->locate_motion_style == LOCATE_BOX) {
-        draw_location(location, imgs, imgs->width
+        draw_location(location, imgs, imgs->width_high
             , image_norm, LOCATE_BOX, LOCATE_BOTH);
     } else if (cam->locate_motion_style == LOCATE_REDBOX) {
         draw_red_location(location, imgs, imgs->width
