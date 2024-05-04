@@ -576,6 +576,8 @@ int cls_libcam::cam_start_config()
 
     MOTPLS_LOG(NTC, TYPE_VIDEO, NO_ERRNO, "Starting.");
 
+    std::vector<libcamera::StreamRole> stream_roles = { StreamRole::Viewfinder , StreamRole::VideoRecording, StreamRole::Raw};
+
     config = camera->generateConfiguration({ StreamRole::Viewfinder , StreamRole::VideoRecording});
     
     config->at(0).pixelFormat = PixelFormat::fromString("YUV420");
