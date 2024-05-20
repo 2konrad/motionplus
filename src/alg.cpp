@@ -654,12 +654,13 @@ static void alg_diff_nomask(ctx_dev *cam)
         sum_currdiff -= curdiff;
     }
     cam->current_image->diffs_raw = diffs;
-    cam->current_image->diffs_raw = sum_currdiff / imgsz;
+    
     cam->current_image->diffs = diffs;
     cam->imgs.image_motion.imgts = cam->current_image->imgts;
 
     if (diffs > 0 ) {
         cam->current_image->diffs_ratio = (abs(diffs_net) * 100) / diffs;
+        cam->current_image->diffs_raw = sum_currdiff / diffs;
     } else {
         cam->current_image->diffs_ratio = 100;
     }
@@ -706,14 +707,16 @@ static void alg_diff_mask(ctx_dev *cam)
         mask++;
     }
     //cam->current_image->diffs_raw = diffs;
-    cam->current_image->diffs_raw = sum_currdiff / diffs;
+    
     cam->current_image->diffs = diffs;
     cam->imgs.image_motion.imgts = cam->current_image->imgts;
 
     if (diffs > 0 ) {
         cam->current_image->diffs_ratio = (abs(diffs_net) * 100) / diffs;
+        cam->current_image->diffs_raw = sum_currdiff / diffs ;
     } else {
         cam->current_image->diffs_ratio = 100;
+        cam->current_image->diffs_raw = 0;
     }
 
 }
@@ -1079,7 +1082,7 @@ void alg_update_reference_frame(ctx_dev *cam, int action)
             ref_dyn++;
             motion++;
         } /* end for i */
-        //if (accept_counter==0){accept_counter=1;}
+        if (accept_counter==0){accept_counter=1;}
         cam->current_image->accept_average = accept_counter_sum / accept_counter;
         //cam->current_image->accept_average = accept_counter_sum_all / accept_counter_all;
 
@@ -1088,8 +1091,10 @@ void alg_update_reference_frame(ctx_dev *cam, int action)
         memcpy(cam->imgs.ref, cam->imgs.image_vprvcy, cam->imgs.size_norm);
         /* Reset static objects */
         //memset(cam->imgs.ref_dyn, accept_timer * 0.5, cam->imgs.motionsize * sizeof(*cam->imgs.ref_dyn)); //accept_timer * 0.6
+        ref_dyn = cam->imgs.ref_dyn;
         for (i = cam->imgs.motionsize; i > 0; i--) {
             (*ref_dyn) = 0 ;
+            ref_dyn++;
         }
     }
 }
