@@ -576,29 +576,23 @@ int cls_libcam::cam_start_config()
 
     MOTPLS_LOG(NTC, TYPE_VIDEO, NO_ERRNO, "Starting.");
 
-    std::vector<libcamera::StreamRole> stream_roles = { StreamRole::Viewfinder , StreamRole::VideoRecording, StreamRole::Raw};
-
     //config = camera->generateConfiguration({ StreamRole::Viewfinder });
-    config = camera->generateConfiguration(stream_roles);
+    config = camera->generateConfiguration({ StreamRole::VideoRecording , StreamRole::Raw});
     //config = camera->generateConfiguration({ StreamRole::VideoRecording , StreamRole::Viewfinder}); 
+
+    config->at(0).pixelFormat = PixelFormat::fromString("YUV420");
 
     config->at(0).size.width = camctx->conf->width;
     config->at(0).size.height = camctx->conf->height;
-    config->at(0).pixelFormat = PixelFormat::fromString("YUV420");
     config->at(0).bufferCount = 1;
-
-    config->at(1).size.width = camctx->conf->width;
-    config->at(1).size.height = camctx->conf->height;
-    config->at(1).pixelFormat = PixelFormat::fromString("YUV420");
-    config->at(1).bufferCount = 1;
 
     auto model = camera->properties().get(properties::Model);
     if (("imx708_wide" == *model) || ("imx708" == *model)) 
     {
-        config->at(2).size.width = 2304;
-        config->at(2).size.height = 1296;
-        config->at(2).pixelFormat = PixelFormat::fromString("YUV420");
-        config->at(2).bufferCount = 1;
+        config->at(1).size.width = 2304;
+        config->at(1).size.height = 1296;
+        config->at(1).pixelFormat = PixelFormat::fromString("YUV420");
+        config->at(1).bufferCount = 1;
     }
 
     //config->sensorConfig->outputSize = libcamera::Size(2304, 1296);
