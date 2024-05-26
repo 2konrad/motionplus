@@ -583,6 +583,11 @@ int cls_libcam::cam_start_config()
     config->at(0).size.height = camctx->conf->height;
     config->at(0).bufferCount = 1;
 
+    config->at(1).pixelFormat = PixelFormat::fromString("YUV420");
+    config->at(1).size.width = camctx->conf->width;
+    config->at(1).size.height = camctx->conf->height;
+    config->at(1).bufferCount = 1;
+
     auto model = camera->properties().get(properties::Model);
     if (("imx708_wide" == *model) || ("imx708" == *model)) 
     {
@@ -753,7 +758,7 @@ int cls_libcam::cam_start_req()
 
     membuf0.buf = (uint8_t *)mmap(NULL, bytes0, PROT_READ, MAP_SHARED, plane0_0.fd.get(), 0);
     membuf0.bufsz = bytes0;
-    membuf1.buf = (uint8_t *)mmap(NULL, bytes0, PROT_READ, MAP_SHARED, plane0_1.fd.get(), 0);
+    membuf1.buf = (uint8_t *)mmap(NULL, bytes1, PROT_READ, MAP_SHARED, plane0_1.fd.get(), 0);
     membuf1.bufsz = bytes1;
 
     requests.push_back(std::move(request));
