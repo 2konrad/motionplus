@@ -576,17 +576,19 @@ int cls_libcam::cam_start_config()
 
     MOTPLS_LOG(NTC, TYPE_VIDEO, NO_ERRNO, "Starting.");
 
-    config = camera->generateConfiguration({ StreamRole::VideoRecording , StreamRole::VideoRecording});
+    config = camera->generateConfiguration({ StreamRole::Viewfinder , StreamRole::VideoRecording});
     
     config->at(0).pixelFormat = PixelFormat::fromString("YUV420");
-    config->at(0).size.width = camctx->conf->width;
-    config->at(0).size.height = camctx->conf->height;
+    config->at(0).size.width = camctx->conf->width / 2;
+    config->at(0).size.height = camctx->conf->height / 2;
     config->at(0).bufferCount = 1;
+    config->at(0).stride = 0;
 
     config->at(1).pixelFormat = PixelFormat::fromString("YUV420");
     config->at(1).size.width = camctx->conf->width;
     config->at(1).size.height = camctx->conf->height;
     config->at(1).bufferCount = 1;
+    config->at(1).stride = 0;
 
     auto model = camera->properties().get(properties::Model);
     if (("imx708_wide" == *model) || ("imx708" == *model)) 
@@ -667,6 +669,7 @@ int cls_libcam::cam_start_req()
 
     camera->requestCompleted.connect(this, &cls_libcam::req_complete);
     frmbuf = std::make_unique<FrameBufferAllocator>(camera);
+    //frmbuf->buffers(config->at(0).stream())[0]>planes()[0]
 
     retcd = frmbuf->allocate(config->at(0).stream());
     if (retcd < 0) {
@@ -734,7 +737,7 @@ int cls_libcam::cam_start_req()
 
     bytes1 = 0;
     for (indx=0; indx<(int)buffer1->planes().size(); indx++){
-        bytes1 += buffer0->planes()[indx].length;
+        bytes1 += buffer1->planes()[indx].length;
         MOTPLS_LOG(DBG, TYPE_VIDEO, NO_ERRNO, "Stream 1: Plane %d of %d length %d"
             , indx, buffer1->planes().size()
             , buffer1->planes()[indx].length);
