@@ -686,6 +686,8 @@ static void alg_diff_mask(ctx_dev *cam)
 
     for (i = 0; i < imgsz; i++) {
         curdiff = (*ref - *new_img);
+        // add color diff
+
         if (0 == *mask) {
             curdiff = 0;
         }
@@ -728,6 +730,7 @@ static void alg_diff_smart(ctx_dev *cam)
     unsigned char *out  = cam->imgs.image_motion.image_norm;
     unsigned char *smartmask_final = cam->imgs.smartmask_final;
     unsigned char *new_img = cam->imgs.image_vprvcy;
+    unsigned char *new_img_p1 = cam->imgs.image_vprvcy + cam->imgs.motionsize;            
 
     int i, curdiff;
     int imgsz = cam->imgs.motionsize;
