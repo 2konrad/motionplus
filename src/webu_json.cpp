@@ -117,7 +117,7 @@ static void webu_json_config_parms(ctx_webui *webui, ctx_config *conf)
     indx_parm = 0;
     first = true;
     while ((config_parms[indx_parm].parm_name != "") ) {
-        if ((config_parms[indx_parm].webui_level == WEBUI_LEVEL_NEVER)) {
+        if (config_parms[indx_parm].webui_level == WEBUI_LEVEL_NEVER) {
             indx_parm++;
             continue;
         }
@@ -260,13 +260,12 @@ static void webu_json_movies_list(ctx_webui *webui)
     std::string response;
     char fmt[PATH_MAX];
     ctx_dbse_rec db;
-    ctx_params *wact;
+    p_lst *lst = &webui->motapp->webcontrol_actions->params_array;
+    p_it it;
 
-    /* Validate movies permitted via params */
-    wact = webui->motapp->webcontrol_actions;
-    for (indx = 0; indx < wact->params_count; indx++) {
-        if (mystreq(wact->params_array[indx].param_name,"movies")) {
-            if (mystreq(wact->params_array[indx].param_value,"off")) {
+    for (it = lst->begin(); it != lst->end(); it++) {
+        if (it->param_name == "movies") {
+            if (it->param_value == "off") {
                 MOTPLS_LOG(INF, TYPE_ALL, NO_ERRNO, "Movies via webcontrol disabled");
                 webui->resp_page += "{\"count\" : 0} ";
                 webui->resp_page += ",\"device_id\" : ";
@@ -288,13 +287,13 @@ static void webu_json_movies_list(ctx_webui *webui)
         db = webui->motapp->dbse->movie_list[indx_mov];
         if (db.found == true) {
             if ((db.movie_sz/1000) < 1000) {
-                snprintf(fmt,PATH_MAX,"%'.1fKB"
+                snprintf(fmt,PATH_MAX,"%.1fKB"
                     ,((double)db.movie_sz/1000));
             } else if ((db.movie_sz/1000000) < 1000) {
-                snprintf(fmt,PATH_MAX,"%'.1fMB"
+                snprintf(fmt,PATH_MAX,"%.1fMB"
                     ,((double)db.movie_sz/1000000));
             } else {
-                snprintf(fmt,PATH_MAX,"%'.1fGB"
+                snprintf(fmt,PATH_MAX,"%.1fGB"
                     ,((double)db.movie_sz/1000000000));
             }
             webui->resp_page += "\""+ std::to_string(indx) + "\":";

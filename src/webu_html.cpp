@@ -632,25 +632,24 @@ static void webu_html_script_assign_cams(ctx_webui *webui)
 /* Create the javascript function assign_actions */
 static void webu_html_script_assign_actions(ctx_webui *webui)
 {
-    int indx;
-    ctx_params *wact;
+    p_lst *lst = &webui->motapp->webcontrol_actions->params_array;
+    p_it it;
 
     webui->resp_page +=
         "    function assign_actions() {\n"
         "      var html_actions = \"\\n\";\n"
         "      html_actions += \"  \";\n";
 
-    wact = webui->motapp->webcontrol_actions;
-    for (indx = 0; indx < wact->params_count; indx++) {
-        if (mystreq(wact->params_array[indx].param_name,"snapshot") &&
-            mystreq(wact->params_array[indx].param_value,"on")) {
+    for (it = lst->begin(); it != lst->end(); it++) {
+        if ((it->param_name == "snapshot") &&
+            (it->param_value == "on")) {
             webui->resp_page +=
                 "      html_actions += \"<a onclick=\\\"send_action(\";\n"
                 "      html_actions += \"'snapshot');\\\">\";\n"
                 "      html_actions += \"Snapshot</a>\\n\";\n\n"
                 ;
-        } else if (mystreq(wact->params_array[indx].param_name,"event") &&
-            mystreq(wact->params_array[indx].param_value,"on")) {
+        } else if ((it->param_name == "event") &&
+            (it->param_value == "on")) {
             webui->resp_page +=
             "      html_actions += \"<a onclick=\\\"send_action(\";\n"
             "      html_actions += \"'eventstart');\\\">\";\n"
@@ -660,8 +659,8 @@ static void webu_html_script_assign_actions(ctx_webui *webui)
             "      html_actions += \"'eventend');\\\">\";\n"
             "      html_actions += \"End Event</a>\\n\";\n\n"
             ;
-        } else if (mystreq(wact->params_array[indx].param_name,"pause") &&
-            mystreq(wact->params_array[indx].param_value,"on")) {
+        } else if ((it->param_name == "pause") &&
+            (it->param_value == "on")) {
             webui->resp_page +=
                 "      html_actions += \"<a onclick=\\\"send_action(\";\n"
                 "      html_actions += \"'pause');\\\">\";\n"
@@ -671,43 +670,43 @@ static void webu_html_script_assign_actions(ctx_webui *webui)
                 "      html_actions += \"'unpause');\\\">\";\n"
                 "      html_actions += \"Unpause</a>\\n\";\n\n"
                 ;
-        } else if (mystreq(wact->params_array[indx].param_name,"camera_add") &&
-            mystreq(wact->params_array[indx].param_value,"on")) {
+        } else if ((it->param_name == "camera_add") &&
+            (it->param_value == "on")) {
             webui->resp_page +=
                 "      html_actions += \"<a onclick=\\\"send_reload(\";\n"
                 "      html_actions += \"'camera_add');\\\">\";\n"
                 "      html_actions += \"Add Camera</a>\\n\";\n\n"
                 ;
-        } else if (mystreq(wact->params_array[indx].param_name,"camera_delete") &&
-            mystreq(wact->params_array[indx].param_value,"on")) {
+        } else if ((it->param_name == "camera_delete") &&
+            (it->param_value == "on")) {
             webui->resp_page +=
                 "      html_actions += \"<a onclick=\\\"send_reload(\";\n"
                 "      html_actions += \"'camera_delete');\\\">\";\n"
                 "      html_actions += \"Delete Camera</a>\\n\";\n\n"
                 ;
-        } else if (mystreq(wact->params_array[indx].param_name,"config_write") &&
-            mystreq(wact->params_array[indx].param_value,"on")) {
+        } else if ((it->param_name == "config_write") &&
+            (it->param_value == "on")) {
             webui->resp_page +=
                 "      html_actions += \"<a onclick=\\\"send_action(\";\n"
                 "      html_actions += \"'config_write');\\\">\";\n"
                 "      html_actions += \"Save Config</a>\\n\";\n\n"
                 ;
-        } else if (mystreq(wact->params_array[indx].param_name,"stop") &&
-            mystreq(wact->params_array[indx].param_value,"on")) {
+        } else if ((it->param_name == "stop") &&
+            (it->param_value == "on")) {
             webui->resp_page +=
                 "      html_actions += \"<a onclick=\\\"send_action(\";\n"
                 "      html_actions += \"'stop');\\\">\";\n"
                 "      html_actions += \"Stop</a>\\n\";\n\n"
                 ;
-        } else if (mystreq(wact->params_array[indx].param_name,"restart") &&
-            mystreq(wact->params_array[indx].param_value,"on")) {
+        } else if ((it->param_name == "restart") &&
+            (it->param_value == "on")) {
             webui->resp_page +=
                 "      html_actions += \"<a onclick=\\\"send_action(\";\n"
                 "      html_actions += \"'restart');\\\">\";\n"
                 "      html_actions += \"Start/Restart</a>\\n\";\n\n"
                 ;
-        } else if (mystreq(wact->params_array[indx].param_name,"action_user") &&
-            mystreq(wact->params_array[indx].param_value,"on")) {
+        } else if ((it->param_name == "action_user") &&
+            (it->param_value == "on")) {
             webui->resp_page +=
                 "      html_actions += \"<a onclick=\\\"send_action(\";\n"
                 "      html_actions += \"'action_user');\\\">\";\n"
@@ -1129,7 +1128,7 @@ static void webu_html_script_cams_all_click(ctx_webui *webui)
     webui->resp_page +=
         "    function cams_all_click() {\n\n"
         "      var html_preview = \"\";\n"
-        "      var indx;\n"
+        "      var indx, chk;\n"
         "      var camid;\n\n"
 
         "      config_hideall();\n"
@@ -1138,31 +1137,46 @@ static void webu_html_script_cams_all_click(ctx_webui *webui)
         "      gIndxScan = -1; \n\n"
         "      var camcnt = pData['cameras']['count'];\n"
         "      html_preview += \"</table>\";\n"
+        "      chk = 0;\n"
         "      for (indx=0; indx<camcnt; indx++) {\n"
         "        camid = pData['cameras'][indx].id;\n"
-        "        if (pData['configuration']['cam'+camid].stream_preview_method.value == 'static') {\n"
-        "          html_preview += \"<a><img id='pic\" + indx + \"' src=\"\n"
-        "          html_preview += pData['cameras'][indx]['url'];\n"
-        "          html_preview += \"static/stream/t\" + new Date().getTime();\n"
-        "          html_preview += \" onclick='cams_one_click(\" + indx + \")' \";\n"
-        "          html_preview += \" border=0 width=\";\n"
-        "          html_preview += pData['configuration']['cam'+camid].stream_preview_scale.value;\n"
-        "          html_preview += \"%></a>\\n\";\n"
-        "          if (pData['configuration']['cam'+camid].stream_preview_newline.value == true) {\n"
-        "            html_preview += \"<br>\\n\";\n"
-        "          }\n"
-        "        } else { \n"
-        "          html_preview += \"<a><img id='pic\" + indx + \"' src=\"\n"
-        "          html_preview += pData['cameras'][indx]['url'];\n"
-        "          html_preview += \"mjpg/stream\" ;\n"
-        "          html_preview += \" onclick='cams_one_click(\" + indx + \")' \";\n"
-        "          html_preview += \" border=0 width=\";\n"
-        "          html_preview += pData['configuration']['cam'+camid].stream_preview_scale.value;\n"
-        "          html_preview += \"%></a>\\n\";\n"
-        "          if (pData['configuration']['cam'+camid].stream_preview_newline.value == true) {\n"
-        "            html_preview += \"<br>\\n\";\n"
-        "          }\n"
-        "        } \n"
+        "        if (pData['configuration']['cam'+camid].stream_preview_method.value == 'combined') {\n"
+        "          chk = 1;\n"
+        "        }\n"
+        "      }\n"
+        "      if (chk == 0) {\n"
+        "        for (indx=0; indx<camcnt; indx++) {\n"
+        "          camid = pData['cameras'][indx].id;\n"
+        "          if (pData['configuration']['cam'+camid].stream_preview_method.value == 'static') {\n"
+        "            html_preview += \"<a><img id='pic\" + indx + \"' src=\"\n"
+        "            html_preview += pData['cameras'][indx]['url'];\n"
+        "            html_preview += \"static/stream/t\" + new Date().getTime();\n"
+        "            html_preview += \" onclick='cams_one_click(\" + indx + \")' \";\n"
+        "            html_preview += \" border=0 width=\";\n"
+        "            html_preview += pData['configuration']['cam'+camid].stream_preview_scale.value;\n"
+        "            html_preview += \"%></a>\\n\";\n"
+        "            if (pData['configuration']['cam'+camid].stream_preview_newline.value == true) {\n"
+        "              html_preview += \"<br>\\n\";\n"
+        "            }\n"
+        "          } else { \n"
+        "            html_preview += \"<a><img id='pic\" + indx + \"' src=\"\n"
+        "            html_preview += pData['cameras'][indx]['url'];\n"
+        "            html_preview += \"mjpg/stream\" ;\n"
+        "            html_preview += \" onclick='cams_one_click(\" + indx + \")' \";\n"
+        "            html_preview += \" border=0 width=\";\n"
+        "            html_preview += pData['configuration']['cam'+camid].stream_preview_scale.value;\n"
+        "            html_preview += \"%></a>\\n\";\n"
+        "            if (pData['configuration']['cam'+camid].stream_preview_newline.value == true) {\n"
+        "              html_preview += \"<br>\\n\";\n"
+        "            }\n"
+        "          } \n"
+        "        }\n"
+        "      } else { \n"
+        "        html_preview += \"<a><img id='pic\" + indx + \"' src=\"\n"
+        "        html_preview += pHostFull;\n"
+        "        html_preview += \"/0/mjpg/stream\" ;\n"
+        "        html_preview += \" border=0 width=95\";\n"
+        "        html_preview += \"%></a>\\n\";\n"
         "      }\n"
         "      document.getElementById('div_config').style.display='none';\n"
         "      document.getElementById('div_movies').style.display = 'none';\n"

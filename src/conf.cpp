@@ -172,6 +172,7 @@ ctx_parm config_parms[] = {
 
     {"stream_preview_scale",      PARM_TYP_INT,    PARM_CAT_14, WEBUI_LEVEL_LIMITED },
     {"stream_preview_newline",    PARM_TYP_BOOL,   PARM_CAT_14, WEBUI_LEVEL_LIMITED },
+    {"stream_preview_location",   PARM_TYP_STRING, PARM_CAT_14, WEBUI_LEVEL_LIMITED },
     {"stream_preview_method",     PARM_TYP_LIST,   PARM_CAT_14, WEBUI_LEVEL_LIMITED },
     {"stream_preview_ptz",        PARM_TYP_BOOL,   PARM_CAT_14, WEBUI_LEVEL_LIMITED },
     {"stream_quality",            PARM_TYP_INT,    PARM_CAT_14, WEBUI_LEVEL_LIMITED },
@@ -1915,8 +1916,22 @@ static void conf_edit_movie_quality(ctx_config *conf, std::string &parm, enum PA
         conf->movie_quality = 60;
     } else if (pact == PARM_ACT_SET) {
         parm_in = atoi(parm.c_str());
-        if ((parm_in < 0) || (parm_in > 100)) {
+        if ((parm_in <= 0) || (parm_in > 100)) {
             MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO, _("Invalid movie_quality %d"),parm_in);
+        } else if (parm_in > 90) {
+            /*
+               Many movie players can not handle the 100% quality
+               setting from ffmpeg.  It sets baseline and x265 to high, etc.
+               As a result, we limit it to an arbritrary number less
+               than 100 (i.e. 90)
+            */
+            MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO
+                , _("Movie quality settings greater than 90 are not permitted."));
+            conf->movie_quality = 90;
+        } else if (parm_in < 5) {
+            MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO
+                , _("Movie quality settings less then 5 are not permitted."));
+            conf->movie_quality = 5;
         } else {
             conf->movie_quality = parm_in;
         }
@@ -2463,27 +2478,40 @@ static void conf_edit_stream_preview_scale(ctx_config *conf, std::string &parm, 
 }
 
 static void conf_edit_stream_preview_newline(ctx_config *conf, std::string &parm, enum PARM_ACT pact)
+ {
+     if (pact == PARM_ACT_DFLT) {
+        conf->stream_preview_newline = false;
+     } else if (pact == PARM_ACT_SET) {
+        conf_edit_set_bool(conf->stream_preview_newline, parm);
+     } else if (pact == PARM_ACT_GET) {
+        conf_edit_get_bool(parm, conf->stream_preview_newline);
+     }
+     return;
+    MOTPLS_LOG(DBG, TYPE_ALL, NO_ERRNO,"%s:%s","stream_preview_newline",_("stream_preview_newline"));
+ }
+
+static void conf_edit_stream_preview_location(ctx_config *conf, std::string &parm, enum PARM_ACT pact)
 {
     if (pact == PARM_ACT_DFLT) {
-        conf->stream_preview_newline = false;
+        conf->stream_preview_location = "";
     } else if (pact == PARM_ACT_SET) {
-        conf_edit_set_bool(conf->stream_preview_newline, parm);
+        conf->stream_preview_location = parm;
     } else if (pact == PARM_ACT_GET) {
-        conf_edit_get_bool(parm, conf->stream_preview_newline);
+        parm = conf->stream_preview_location;
     }
     return;
-    MOTPLS_LOG(DBG, TYPE_ALL, NO_ERRNO,"%s:%s","stream_preview_newline",_("stream_preview_newline"));
+    MOTPLS_LOG(DBG, TYPE_ALL, NO_ERRNO,"%s:%s","stream_preview_location",_("stream_preview_location"));
 }
 
 static void conf_edit_stream_preview_method(ctx_config *conf, std::string &parm, enum PARM_ACT pact)
 {
     if (pact == PARM_ACT_DFLT) {
-        conf->stream_preview_method = "mjpg";
+        conf->stream_preview_method = "combined";
     } else if (pact == PARM_ACT_SET) {
-        if ((parm == "mjpg") || (parm == "static"))  {
+        if ((parm == "mjpg") || (parm == "static") || (parm == "combined"))  {
             conf->stream_preview_method = parm;
         } else if (parm == "") {
-            conf->stream_preview_method = "mjpg";
+            conf->stream_preview_method = "combined";
         } else {
             MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO, _("Invalid stream_preview_method %s"), parm.c_str());
         }
@@ -3243,6 +3271,7 @@ static void conf_edit_cat14(ctx_config *conf, std::string parm_nm
 {
     if (parm_nm == "stream_preview_scale") {               conf_edit_stream_preview_scale(conf, parm_val, pact);
     } else if (parm_nm == "stream_preview_newline") {      conf_edit_stream_preview_newline(conf, parm_val, pact);
+    } else if (parm_nm == "stream_preview_location") {     conf_edit_stream_preview_location(conf, parm_val, pact);
     } else if (parm_nm == "stream_preview_method") {       conf_edit_stream_preview_method(conf, parm_val, pact);
     } else if (parm_nm == "stream_preview_ptz") {          conf_edit_stream_preview_ptz(conf, parm_val, pact);
     } else if (parm_nm == "stream_quality") {              conf_edit_stream_quality(conf, parm_val, pact);
@@ -3913,16 +3942,16 @@ void conf_parms_log_parm(std::string parm_nm, std::string parm_vl)
         (parm_nm == "database_user") ||
         (parm_nm == "database_password"))
     {
-        motpls_log(INF, TYPE_ALL, NO_ERRNO,0
+        motpls_log(INF, TYPE_ALL, NO_ERRNO, 0, NULL
             ,_("%-25s <redacted>"), parm_nm.c_str());
     } else {
         if ((parm_nm.compare(0,4,"text") == 0) ||
             (parm_vl.compare(0,1, " ") != 0)) {
-            motpls_log(INF, TYPE_ALL, NO_ERRNO,0, "%-25s %s"
-                , parm_nm.c_str(), parm_vl.c_str());
+            motpls_log(INF, TYPE_ALL, NO_ERRNO,0, NULL
+                , "%-25s %s", parm_nm.c_str(), parm_vl.c_str());
         } else {
-            motpls_log(INF, TYPE_ALL, NO_ERRNO,0, "%-25s \"%s\""
-                , parm_nm.c_str(), parm_vl.c_str());
+            motpls_log(INF, TYPE_ALL, NO_ERRNO, 0, NULL
+                , "%-25s \"%s\"", parm_nm.c_str(), parm_vl.c_str());
         }
     }
 
@@ -3941,8 +3970,8 @@ void conf_parms_log(ctx_motapp *motapp)
     MOTPLS_LOG(INF, TYPE_ALL, NO_ERRNO
         ,_("Logging configuration parameters from all files"));
 
-    motpls_log(INF, TYPE_ALL, NO_ERRNO,0, _("Config file: %s")
-        , motapp->conf->conf_filename.c_str());
+    motpls_log(INF, TYPE_ALL, NO_ERRNO,0, NULL
+        , _("Config file: %s"), motapp->conf->conf_filename.c_str());
 
     i = 0;
     while (config_parms[i].parm_name != "") {
@@ -3966,7 +3995,7 @@ void conf_parms_log(ctx_motapp *motapp)
     }
 
     for (indx=0; indx<motapp->cam_cnt; indx++) {
-        motpls_log(INF, TYPE_ALL, NO_ERRNO, 0
+        motpls_log(INF, TYPE_ALL, NO_ERRNO, 0, NULL
             , _("Camera %d - Config file: %s")
             , motapp->cam_list[indx]->conf->device_id
             , motapp->cam_list[indx]->conf->conf_filename.c_str());
@@ -3993,7 +4022,7 @@ void conf_parms_log(ctx_motapp *motapp)
     }
 
     for (indx=0; indx<motapp->snd_cnt; indx++) {
-        motpls_log(INF, TYPE_ALL, NO_ERRNO, 0
+        motpls_log(INF, TYPE_ALL, NO_ERRNO, 0, NULL
             , _("Sound %d - Config file: %s")
             , motapp->snd_list[indx]->conf->device_id
             , motapp->snd_list[indx]->conf->conf_filename.c_str());
@@ -4327,12 +4356,14 @@ void conf_deinit(ctx_motapp *motapp)
         delete motapp->cam_list[indx];
     }
     myfree(&motapp->cam_list);
+    motapp->cam_cnt = 0;
 
     for (indx=0; indx<motapp->snd_cnt; indx++) {
         delete motapp->snd_list[indx]->conf;
         delete motapp->snd_list[indx];
     }
     myfree(&motapp->snd_list);
+    motapp->snd_cnt = 0;
 
 }
 

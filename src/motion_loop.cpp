@@ -135,7 +135,7 @@ static void mlp_ring_process(ctx_dev *cam)
 
         cam->current_image = &cam->imgs.image_ring[cam->imgs.ring_out];
 
-        if (cam->current_image->shot < cam->conf->framerate) {
+        if (cam->current_image->shot <= cam->conf->framerate) {
             if (cam->motapp->conf->log_level >= DBG) {
                 mlp_ring_process_debug(cam);
             }
@@ -189,9 +189,9 @@ static void mlp_detected_trigger(ctx_dev *cam)
     struct tm evt_tm;
 
     if (cam->current_image->flags & IMAGE_TRIGGER) {
-        if (cam->event_nr != cam->prev_event) {
+        if (cam->event_curr_nbr != cam->event_prev_nbr) {
             mlp_info_reset(cam);
-            cam->prev_event = cam->event_nr;
+            cam->event_prev_nbr = cam->event_curr_nbr;
 
             if (cam->algsec_inuse) {
                 cam->algsec->isdetected = false;
@@ -203,7 +203,7 @@ static void mlp_detected_trigger(ctx_dev *cam)
             strftime(cam->eventid, 13, "%m%d_%H%M_%S", &evt_tm);
 
             MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO, _("Motion detected - starting event %d"),
-                       cam->event_nr);
+                       cam->event_curr_nbr);
 
             mystrftime(cam, cam->text_event_string
                 , sizeof(cam->text_event_string)
@@ -265,7 +265,7 @@ static void mlp_detected(ctx_dev *cam)
 
     mlp_detected_trigger(cam);
 
-    if (cam->current_image->shot < conf->framerate) {
+    if (cam->current_image->shot <= conf->framerate) {
         if ((conf->stream_motion == true) &&
             (cam->motapp->conf->setup_mode == false) &&
             (cam->current_image->shot != 1)) {
@@ -448,6 +448,8 @@ static void mlp_init_firstimage(ctx_dev *cam)
             }
             SLEEP(2, 0);
         }
+    } else {
+        indx = 0;
     }
 
     if ((indx >= 5) || (cam->device_status != STATUS_OPENED)) {
@@ -553,8 +555,8 @@ static void mlp_init_buffers(ctx_dev *cam)
 /* Initialize loop values */
 static void mlp_init_values(ctx_dev *cam)
 {
-    cam->event_nr = 1;
-    cam->prev_event = 0;
+    cam->event_curr_nbr = 1;
+    cam->event_prev_nbr = 0;
 
     cam->watchdog = cam->conf->watchdog_tmo;
 
@@ -563,6 +565,7 @@ static void mlp_init_values(ctx_dev *cam)
 
     cam->noise = cam->conf->noise_level;
     cam->passflag = false;
+    cam->motapp->all_sizes->reset= true;
     cam->threshold = cam->conf->threshold;
     cam->device_status = STATUS_CLOSED;
     cam->startup_frames = (cam->conf->framerate * 2) + cam->conf->pre_capture + cam->conf->minimum_motion_frames;
@@ -613,7 +616,7 @@ static void mlp_init_ref(ctx_dev *cam)
 void mlp_cleanup(ctx_dev *cam)
 {
     event(cam, EVENT_TLAPSE_END);
-    if (cam->event_nr == cam->prev_event) {
+    if (cam->event_curr_nbr == cam->event_prev_nbr) {
         mlp_ring_process(cam);
         if (cam->imgs.image_preview.diffs) {
             event(cam, EVENT_IMAGE_PREVIEW);
@@ -732,7 +735,7 @@ static void mlp_areadetect(ctx_dev *cam)
     int i, j, z = 0;
 
     if ((cam->conf->area_detect != "" ) &&
-        (cam->event_nr != cam->areadetect_eventnbr) &&
+        (cam->event_curr_nbr != cam->areadetect_eventnbr) &&
         (cam->current_image->flags & IMAGE_TRIGGER)) {
         j = (int)cam->conf->area_detect.length();
         for (i = 0; i < j; i++) {
@@ -743,7 +746,7 @@ static void mlp_areadetect(ctx_dev *cam)
                     cam->current_image->location.y > cam->area_miny[z] &&
                     cam->current_image->location.y < cam->area_maxy[z]) {
                     event(cam, EVENT_AREA_DETECTED);
-                    cam->areadetect_eventnbr = cam->event_nr; /* Fire script only once per event */
+                    cam->areadetect_eventnbr = cam->event_curr_nbr; /* Fire script only once per event */
                     MOTPLS_LOG(DBG, TYPE_ALL, NO_ERRNO
                         ,_("Motion in area %d detected."), z + 1);
                     break;
@@ -1149,7 +1152,7 @@ static void mlp_actions_event(ctx_dev *cam)
     }
 
     if (cam->event_stop) {
-        if (cam->event_nr == cam->prev_event) {
+        if (cam->event_curr_nbr == cam->event_prev_nbr) {
 
             mlp_ring_process(cam);
 
@@ -1170,10 +1173,10 @@ static void mlp_actions_event(ctx_dev *cam)
                 cam->algsec->isdetected = false;
             }
 
-            MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO, _("End of event %d"), cam->event_nr);
+            MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO, _("End of event %d"), cam->event_curr_nbr);
 
             cam->postcap = 0;
-            cam->event_nr++;
+            cam->event_curr_nbr++;
             cam->text_event_string[0] = '\0';
         }
         cam->event_stop = false;
@@ -1181,13 +1184,12 @@ static void mlp_actions_event(ctx_dev *cam)
     }
 
     if ((cam->conf->movie_max_time > 0) &&
-        (cam->event_nr == cam->prev_event) &&
+        (cam->event_curr_nbr == cam->event_prev_nbr) &&
         ((cam->frame_curr_ts.tv_sec - cam->movie_start_time) >=
             cam->conf->movie_max_time) &&
         ( !(cam->current_image->flags & IMAGE_POSTCAP)) &&
         ( !(cam->current_image->flags & IMAGE_PRECAP))) {
         event(cam, EVENT_MOVIE_END);
-        mlp_info_reset(cam);
         event(cam, EVENT_MOVIE_START);
     }
 

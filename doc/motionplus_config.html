@@ -462,16 +462,17 @@
             <tr>
               <td bgcolor="#edf4f9" ><a href="#stream_preview_scale" >stream_preview_scale</a> </td>
               <td bgcolor="#edf4f9" ><a href="#stream_preview_newline" >stream_preview_newline</a> </td>
+              <td bgcolor="#edf4f9" ><a href="#stream_preview_location" >stream_preview_location</a> </td>
               <td bgcolor="#edf4f9" ><a href="#stream_preview_method" >stream_preview_method</a> </td>
-              <td bgcolor="#edf4f9" ><a href="#stream_preview_ptz" >stream_preview_ptz</a> </td>
             </tr>
             <tr>
+              <td bgcolor="#edf4f9" ><a href="#stream_preview_ptz" >stream_preview_ptz</a> </td>
               <td bgcolor="#edf4f9" ><a href="#stream_quality" >stream_quality</a> </td>
               <td bgcolor="#edf4f9" ><a href="#stream_grey" >stream_grey</a> </td>
               <td bgcolor="#edf4f9" ><a href="#stream_maxrate" >stream_maxrate</a> </td>
-              <td bgcolor="#edf4f9" ><a href="#stream_motion" >stream_motion</a> </td>
             </tr>
            <tr>
+              <td bgcolor="#edf4f9" ><a href="#stream_motion" >stream_motion</a> </td>
               <td bgcolor="#edf4f9" ><a href="#stream_scan_time" >stream_scan_time</a> </td>
               <td bgcolor="#edf4f9" ><a href="#stream_scan_scale" >stream_scan_scale</a> </td>
            </tr>
@@ -709,6 +710,12 @@
         <ul>
           <li> Values: on, off | Default: off</li>
           Run in setup mode and provide lots of messages related to images processed.
+          <br>
+          Prints the image differences, labels, noise values, thread number and the word
+          setup on the output image.  Also outputs the image in the "motion" negative format
+          instead of the normal output.
+          <br>
+          Prints the label values, difference values, noise level to the log file.
         </ul>
         <p></p>
 
@@ -730,6 +737,24 @@
         <ul>
           <li> Values: 1 - 9 | Default: 6</li>
           Verbosity level(EMR, ALR, CRT, ERR, WRN, NTC, INF, DBG, ALL) of messages.
+          <br>
+          At the DBG Level(8) and higher:
+          <br>Additional values related to the trigger,
+          motion, precap and postcap are overlayed on the images.
+          <br>Additional information regarding the available parameters to libcamera are
+          printed to the log.
+          <br>Additional information regarding the available parameters to v4l2 devices is
+          printed to the log.
+          <br>
+          If a secondary detection algorithms is specified:
+          <br>
+          The image sent to the secondary algorithm for detection will
+          be saved to the target directory with the name src_"algorithm".jpg
+          e.g. src_haar.jpg
+          <br>
+          If the secondary algorithm is triggered by the image, the resulting
+          image will be saved into the target directory with the name
+          detect_"algorithm".jpg e.g. detect_haar.jpg
         </ul>
         <p></p>
 
@@ -2151,7 +2176,8 @@
         <ul>
           <li> Values: Integer | Default: 25</li>
           The percentage to scale the stream image when it is placed on the webcontrol
-          page.  Numbers greater than 100 are permitted.
+          page or into the combined image when the stream_preview_method is set to combined.
+          <br>Numbers greater than 100 are permitted.
         </ul>
         <p></p>
 
@@ -2159,14 +2185,116 @@
         <ul>
           <li> Values: on, off | Default: off</li>
           Insert a new line indicator prior to the image on the webcontrol web page.
+        <p></p>
+          Note that this parameter is ignored when the stream_preview_method is set to
+          combined.
+        </ul>
+        <p></p>
+
+        <h3><a name="stream_preview_location"></a> stream_preview_location</h3>
+        <ul>
+         <li> Values: String | Default: Not Defined</li>
+          Comma separated parameters for the location on the consolidated image.
+          The consolidated image puts together a single image of all the cameras currently
+          running. Format is parm1=value1,parm2=value2 etc.
+          <p></p>
+          Note that this parameter is ignored when the stream_preview_method is set to
+          any value other than combined.
+          <div>
+            <i><h4>row</h4></i>
+            <ul>
+              <li> Values: positive integers | Default: Not Defined </li>
+              On the preview home page, the row number that the image will be shown.
+              Row numbers are counts of images on the page and not pixels.  For example,
+              if there are six cameras running and they are all stacked on top of each other
+              on the page, the last image will be at row 6 (Not image1 height + image2 height +
+              ...image 5 height)
+            </ul>
+            <p></p>
+          </div>
+          <div>
+            <i><h4>col</h4></i>
+            <ul>
+              <li> Values: positive integers | Default: Not Defined </li>
+              On the preview home page, the column number that the image will be shown.
+              Column numbers are counts of images on the page and not pixels.  For example,
+              if there are six cameras running and they are all put side by side
+              on the page, the last image will be at column 6 (Not image1 width + image2 width +
+              ...image 5 width)
+            </ul>
+            <p></p>
+          </div>
+          <div>
+            <i><h4>offset_col</h4></i>
+            <ul>
+              <li> Values: positive and negative integers | Default: 0 </li>
+              On the preview home page, Motionplus will arrange the image of
+              the camera into the row and columns indicated by the other parameters.
+              After the image is positioned, Motionplus centers the image in the
+              row and column grid space.  This parameter allows the user to move the image
+              to the left(negative values) or right(positive values) from that center position.
+              <p></p>
+              This parameter is in pixels.
+            </ul>
+            <p></p>
+          </div>
+          <div>
+            <i><h4>offset_row </h4></i>
+            <ul>
+              <li> Values: positive and negative integers | Default: 0 </li>
+              On the preview home page, Motionplus will arrange the image of
+              the camera into the row and columns indicated by the other parameters.
+              After the image is positioned, Motionplus centers the image in the
+              row and column grid space.  This parameter allows the user to move the image
+              up (negative values) or down(positive values) from that center position.
+              <p></p>
+              This parameter is in pixels.
+            </ul>
+            <p></p>
+          </div>
+
+          <p></p>
+          Note that the row and col must be continuous without gaps in the numbers.
+          e.g. If one of the cameras specifies a row number of 5, then some of the other
+          cameras must specify numbers 1 to 4 inclusive.  Likewise on the col parameter.
+          For each row, the col must start at 1 and increase sequentially.  It is however
+          permitted to have a different number of cameras on each row.
+          <p></p>
+          <div>
+            <p></p>
+            <h4>Illustrative sample:</h4>
+            <p></p>
+            Two cameras on first row, one camera on second row, three cameras on third row.
+            <ul style="list-style: none;">
+              <li>camera1 configuration: <code><small>stream_preview_location row=3,col=1</small></code></li>
+              <li>camera2 configuration: <code><small>stream_preview_location row=1,col=2</small></code></li>
+              <li>camera3 configuration: <code><small>stream_preview_location row=3,col=3</small></code></li>
+              <li>camera4 configuration: <code><small>stream_preview_location row=1,col=1</small></code></li>
+              <li>camera5 configuration: <code><small>stream_preview_location row=3,col=2</small></code></li>
+              <li>camera6 configuration: <code><small>stream_preview_location row=2,col=1</small></code></li>
+            </ul>
+            <p></p>
+          </div>
         </ul>
         <p></p>
 
         <h3><a name="stream_preview_method"></a> stream_preview_method </h3>
         <ul>
-          <li> Values: `mjpg`, `static` | Default: `mjpg`</li>
-          This option determines the method used for displaying images on the webcontrol page.  Use
-          `static` to get around browser limits on the concurrent number connections to server.
+          <li> Values: `combined`, `mjpg`, `static` | Default: `combined`</li>
+          This option determines the method used for displaying images on the webcontrol page.
+          <ul>
+          <li>`mjpg`<br> The webcontrol page is created with a mjpg stream for each camera.  This method
+          creates a connection to the server for each camera.  Note that if there are many cameras,
+          this method may not show/refresh properly in the browser due to browser settings regarding
+          the maximum number of concurrent connections.</li>
+          <br><li> `static`<br> The webcontrol page loops through all the cameras and refreshes the
+          images using static jpgs.  This method provides a slower refresh rate
+          than the mjpg option but allows for a higher number of cameras to get around the
+          browser concurrent connection limits.</li>
+          <br><li>`combined`<br>The webcontrol page uses a combined single mjpg stream.  The
+          combined single mjpg stream is constructed by Motionplus from all of the cameras
+          currently running.</li>
+          </ul>
         </ul>
         <p></p>
 

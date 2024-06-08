@@ -356,9 +356,12 @@ static int movie_set_pts(ctx_movie *movie, const struct timespec *ts1)
         if (movie->last_pts < 0) {
             // This is the very first frame, ensure PTS is zero
             movie->picture->pts = 0;
-        } else
-            movie->picture->pts = av_rescale_q(pts_interval,(AVRational){1, 1000000L},movie->strm_video->time_base) + movie->base_pts;
-
+        } else {
+            movie->picture->pts = movie->base_pts +
+                av_rescale_q(pts_interval
+                    , av_make_q(1, 1000000L)
+                    , movie->strm_video->time_base);
+        }
         if (movie->test_mode == true) {
             MOTPLS_LOG(INF, TYPE_ENCODER, NO_ERRNO
                 ,_("PTS %" PRId64 " Base PTS %" PRId64 " ms interval %" PRId64 " timebase %d-%d")
@@ -391,7 +394,7 @@ static int movie_set_quality(ctx_movie *movie)
             movie->quality = 45; // default to 45% quality
         }
 
-        if ((movie->preferred_codec == USER_CODEC_V4L2M2M)) {
+        if (movie->preferred_codec == USER_CODEC_V4L2M2M) {
 
             // bit_rate = movie->width * movie->height * movie->fps * quality_factor
             movie->quality = (int)(((int64_t)movie->width * movie->height * movie->fps * movie->quality) >> 7);
@@ -599,7 +602,7 @@ static int movie_set_stream(ctx_movie *movie)
         }
     #endif
 
-    movie->strm_video->time_base = (AVRational){1, movie->fps};
+    movie->strm_video->time_base =  av_make_q(1, movie->fps);
 
     return 0;
 
@@ -993,7 +996,7 @@ static void movie_passthru_write(ctx_movie *movie, int indx)
     movie_free_pkt(movie);
     if (retcd < 0) {
         av_strerror(retcd, errstr, sizeof(errstr));
-        MOTPLS_LOG(ERR, TYPE_ENCODER, NO_ERRNO
+        MOTPLS_LOG(DBG, TYPE_ENCODER, NO_ERRNO
             ,_("Error while writing video frame: %s"),errstr);
         return;
     }
@@ -1448,11 +1451,11 @@ int movie_put_image(ctx_movie *movie, ctx_image_data *img_data, const struct tim
         movie->gop_cnt ++;
         if (movie->gop_cnt == movie->ctx_codec->gop_size ) {
             movie->picture->pict_type = AV_PICTURE_TYPE_I;
-            movie->picture->key_frame = 1;
+            myframe_key(movie->picture);
             movie->gop_cnt = 0;
         } else {
             movie->picture->pict_type = AV_PICTURE_TYPE_P;
-            movie->picture->key_frame = 0;
+             myframe_interlaced(movie->picture);
         }
 
         /* A return code of -2 is thrown by the put_frame
@@ -1483,7 +1486,7 @@ int movie_put_image(ctx_movie *movie, ctx_image_data *img_data, const struct tim
 
 void movie_reset_start_time(ctx_movie *movie, const struct timespec *ts1)
 {
-    int64_t one_frame_interval = av_rescale_q(1,(AVRational){1, movie->fps}, movie->strm_video->time_base);
+    int64_t one_frame_interval = av_rescale_q(1,av_make_q(1, movie->fps), movie->strm_video->time_base);
     if (one_frame_interval <= 0) {
         one_frame_interval = 1;
     }
@@ -1510,7 +1513,7 @@ static const char* movie_init_container(ctx_dev *cam)
 
     if (cam->conf->movie_container == "test") {
         MOTPLS_LOG(NTC, TYPE_ENCODER, NO_ERRNO, "Running test of the various output formats.");
-        codenbr = cam->event_nr % 10;
+        codenbr = cam->event_curr_nbr % 10;
         if (codenbr == 1) {
             return "flv";
         } else if (codenbr == 2) {

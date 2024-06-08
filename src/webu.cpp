@@ -65,7 +65,7 @@ static void webu_context_init(ctx_motapp *motapp, ctx_webui *webui)
     webui->auth_user     = NULL;                        /* Buffer to hold the user name*/
     webui->auth_pass     = NULL;                        /* Buffer to hold the password */
     webui->authenticated = false;                       /* boolean for whether we are authenticated*/
-    webui->resp_size     = WEBUI_LEN_RESP * 10;         /* The size of the resp_page buffer.  May get adjusted */
+    webui->resp_size     = 0;                           /* The size of the resp_page buffer.  May get adjusted */
     webui->resp_used     = 0;                           /* How many bytes used so far in resp_page*/
     webui->resp_image    = NULL;                        /* Buffer for sending the images */
     webui->stream_pos    = 0;                           /* Stream position of image being sent */
@@ -79,7 +79,9 @@ static void webu_context_init(ctx_motapp *motapp, ctx_webui *webui)
     webui->cnct_type     = WEBUI_CNCT_UNKNOWN;
     webui->resp_type     = WEBUI_RESP_HTML;             /* Default to html response */
     webui->cnct_method   = WEBUI_METHOD_GET;
-    webui->camindx      = -1;
+    webui->camindx       = -1;
+    webui->device_id     = -1;
+    webui->all_img_data  = NULL;
 
     tmplang = setlocale(LC_ALL, NULL);
     if (tmplang == NULL) {
@@ -101,6 +103,7 @@ static void webu_context_free(ctx_webui *webui)
     myfree(&webui->auth_opaque);
     myfree(&webui->auth_realm);
     myfree(&webui->resp_image);
+    myfree(&webui->all_img_data);
 
     for (indx = 0; indx<webui->post_sz; indx++) {
         myfree(&webui->post_info[indx].key_nm);
@@ -118,7 +121,6 @@ static void webu_parms_edit(ctx_webui *webui)
 {
     int indx, is_nbr;
 
-    webui->device_id = -1;
     if (webui->uri_camid.length() > 0) {
         is_nbr = true;
         for (indx=0; indx < (int)webui->uri_camid.length(); indx++) {
@@ -139,7 +141,7 @@ static void webu_parms_edit(ctx_webui *webui)
     }
 
     MOTPLS_LOG(DBG, TYPE_STREAM, NO_ERRNO
-        , "camid: >%s< thread: >%d< cmd1: >%s< cmd2: >%s< cmd3: >%s<"
+        , "camid: >%s< camindx: >%d< cmd1: >%s< cmd2: >%s< cmd3: >%s<"
         , webui->uri_camid.c_str(), webui->camindx
         , webui->uri_cmd1.c_str(), webui->uri_cmd2.c_str()
         , webui->uri_cmd3.c_str());
@@ -636,7 +638,8 @@ static mhdrslt webu_mhd_send(ctx_webui *webui)
 {
     mhdrslt retcd;
     struct MHD_Response *response;
-    int indx;
+    p_lst *lst = &webui->motapp->webcontrol_headers->params_array;
+    p_it it;
 
     response = MHD_create_response_from_buffer(webui->resp_page.length()
         ,(void *)webui->resp_page.c_str(), MHD_RESPMEM_PERSISTENT);
@@ -646,11 +649,9 @@ static mhdrslt webu_mhd_send(ctx_webui *webui)
     }
 
     if (webui->motapp->webcontrol_headers->params_count > 0) {
-        for (indx = 0; indx < webui->motapp->webcontrol_headers->params_count; indx++) {
+        for (it = lst->begin(); it != lst->end(); it++) {
             MHD_add_response_header (response
-                , webui->motapp->webcontrol_headers->params_array[indx].param_name
-                , webui->motapp->webcontrol_headers->params_array[indx].param_value
-            );
+                , it->param_name.c_str(),it->param_value.c_str());
         }
     }
 
@@ -972,111 +973,95 @@ static void *webu_mhd_init(void *cls, const char *uri, struct MHD_Connection *co
     return webui;
 }
 
-/* Clean up our variables when the MHD connection closes */
+static void webu_mhd_deinit_counter(ctx_webui *webui)
+{
+    ctx_stream_data *strm;
+    ctx_dev *cam;
+    int indx, cam_max, cam_min;
+
+    if (webui->cnct_type < WEBUI_CNCT_JPG_MIN) {
+        return;
+    }
+
+    if (webui->device_id == 0) {
+        cam_min = 0;
+        cam_max = webui->motapp->cam_cnt;
+    } else if ((webui->device_id > 0) && (webui->camindx >= 0)) {
+        cam_min = webui->camindx;
+        cam_max = cam_min +1;
+    } else {
+        cam_min = 1;
+        cam_max = 0;
+    }
+
+    for (indx=cam_min; indx<cam_max; indx++) {
+        cam = webui->motapp->cam_list[indx];
+        pthread_mutex_lock(&cam->stream.mutex);
+            if ((webui->cnct_type == WEBUI_CNCT_JPG_FULL) ||
+                (webui->cnct_type == WEBUI_CNCT_TS_FULL)) {
+                strm = &cam->stream.norm;
+            } else if ( (webui->cnct_type == WEBUI_CNCT_JPG_SUB) ||
+                        (webui->cnct_type == WEBUI_CNCT_TS_SUB)) {
+                strm = &cam->stream.sub;
+            } else if ( (webui->cnct_type == WEBUI_CNCT_JPG_MOTION) ||
+                        (webui->cnct_type == WEBUI_CNCT_TS_MOTION )) {
+                strm = &cam->stream.motion;
+            } else if ( (webui->cnct_type == WEBUI_CNCT_JPG_SOURCE) ||
+                        (webui->cnct_type == WEBUI_CNCT_TS_SOURCE)) {
+                strm = &cam->stream.source;
+            } else if ( (webui->cnct_type == WEBUI_CNCT_JPG_SECONDARY) ||
+                        (webui->cnct_type == WEBUI_CNCT_TS_SECONDARY)) {
+                strm = &cam->stream.secondary;
+            } else {
+                strm = &cam->stream.norm;
+            }
+            if ((webui->cnct_type > WEBUI_CNCT_JPG_MIN) &&
+                (webui->cnct_type < WEBUI_CNCT_JPG_MAX)) {
+                if ((webui->device_id == 0) && (strm->all_cnct > 0)) {
+                    strm->all_cnct--;
+                } else if ((webui->device_id > 0) && (strm->jpg_cnct > 0)) {
+                    strm->jpg_cnct--;
+                }
+            } else if ((webui->cnct_type > WEBUI_CNCT_TS_MIN) &&
+                (webui->cnct_type < WEBUI_CNCT_TS_MAX)) {
+                if ((webui->device_id == 0) && (strm->all_cnct > 0)) {
+                    strm->all_cnct--;
+                } else if ((webui->device_id > 0) && (strm->ts_cnct > 0)) {
+                    strm->ts_cnct--;
+                }
+            }
+            if ((strm->all_cnct == 0) &&
+                (strm->jpg_cnct == 0) &&
+                (strm->ts_cnct == 0) &&
+                (cam->passflag)) {
+                    myfree(&strm->img_data);
+                    myfree(&strm->jpg_data);
+            }
+        pthread_mutex_unlock(&cam->stream.mutex);
+    }
+}
+
+/* Clean up when the MHD connection closes */
 static void webu_mhd_deinit(void *cls, struct MHD_Connection *connection
         , void **con_cls, enum MHD_RequestTerminationCode toe)
 {
-    ctx_webui *webui =(ctx_webui *) *con_cls;
-
     (void)connection;
     (void)cls;
     (void)toe;
-    /* Sometimes we can shutdown after we have initiated a connection but yet
-     * before the connection counter has been incremented.  So we check the
-     * connection counter before we decrement
-     */
-    if (webui->cnct_type == WEBUI_CNCT_JPG_FULL ) {
-        pthread_mutex_lock(&webui->cam->stream.mutex);
-            if (webui->cam->stream.norm.jpg_cnct > 0) {
-                webui->cam->stream.norm.jpg_cnct--;
-            }
-        pthread_mutex_unlock(&webui->cam->stream.mutex);
+    ctx_webui *webui =(ctx_webui *) *con_cls;
 
-    } else if (webui->cnct_type == WEBUI_CNCT_JPG_SUB ) {
-        pthread_mutex_lock(&webui->cam->stream.mutex);
-            if (webui->cam->stream.sub.jpg_cnct > 0) {
-                webui->cam->stream.sub.jpg_cnct--;
-            }
-        pthread_mutex_unlock(&webui->cam->stream.mutex);
+    webu_mhd_deinit_counter(webui);
 
-    } else if (webui->cnct_type == WEBUI_CNCT_JPG_MOTION ) {
-        pthread_mutex_lock(&webui->cam->stream.mutex);
-            if (webui->cam->stream.motion.jpg_cnct > 0) {
-                webui->cam->stream.motion.jpg_cnct--;
-            }
-        pthread_mutex_unlock(&webui->cam->stream.mutex);
-
-    } else if (webui->cnct_type == WEBUI_CNCT_JPG_SOURCE ) {
-        pthread_mutex_lock(&webui->cam->stream.mutex);
-            if (webui->cam->stream.source.jpg_cnct > 0) {
-                webui->cam->stream.source.jpg_cnct--;
-            }
-        pthread_mutex_unlock(&webui->cam->stream.mutex);
-
-    } else if (webui->cnct_type == WEBUI_CNCT_JPG_SECONDARY ) {
-        pthread_mutex_lock(&webui->cam->stream.mutex);
-            if (webui->cam->stream.secondary.jpg_cnct > 0) {
-                webui->cam->stream.secondary.jpg_cnct--;
-            }
-        pthread_mutex_unlock(&webui->cam->stream.mutex);
-
-    } else if (webui->cnct_type == WEBUI_CNCT_TS_FULL ) {
-        pthread_mutex_lock(&webui->cam->stream.mutex);
-            if (webui->cam->stream.norm.ts_cnct > 0) {
-                webui->cam->stream.norm.ts_cnct--;
-            }
-        pthread_mutex_unlock(&webui->cam->stream.mutex);
-
-    } else if (webui->cnct_type == WEBUI_CNCT_TS_SUB ) {
-        pthread_mutex_lock(&webui->cam->stream.mutex);
-            if (webui->cam->stream.sub.ts_cnct > 0) {
-                webui->cam->stream.sub.ts_cnct--;
-            }
-        pthread_mutex_unlock(&webui->cam->stream.mutex);
-
-    } else if (webui->cnct_type == WEBUI_CNCT_TS_MOTION ) {
-        pthread_mutex_lock(&webui->cam->stream.mutex);
-            if (webui->cam->stream.motion.ts_cnct > 0) {
-                webui->cam->stream.motion.ts_cnct--;
-            }
-        pthread_mutex_unlock(&webui->cam->stream.mutex);
-
-    } else if (webui->cnct_type == WEBUI_CNCT_TS_SOURCE ) {
-        pthread_mutex_lock(&webui->cam->stream.mutex);
-            if (webui->cam->stream.source.ts_cnct > 0) {
-                webui->cam->stream.source.ts_cnct--;
-            }
-        pthread_mutex_unlock(&webui->cam->stream.mutex);
-
-    } else if (webui->cnct_type == WEBUI_CNCT_TS_SECONDARY ) {
-        pthread_mutex_lock(&webui->cam->stream.mutex);
-            if (webui->cam->stream.secondary.ts_cnct > 0) {
-                webui->cam->stream.secondary.ts_cnct--;
-            }
-        pthread_mutex_unlock(&webui->cam->stream.mutex);
-
+    if ((webui->cnct_type > WEBUI_CNCT_TS_MIN) &&
+        (webui->cnct_type < WEBUI_CNCT_TS_MAX)) {
+        webu_mpegts_free_context(webui);
     }
 
-    if (webui != NULL) {
-        //MOTPLS_LOG(INF, TYPE_STREAM, NO_ERRNO ,_("Closing connection"));
-        if ((webui->cnct_type == WEBUI_CNCT_TS_FULL) ||
-            (webui->cnct_type == WEBUI_CNCT_TS_SUB) ||
-            (webui->cnct_type == WEBUI_CNCT_TS_MOTION) ||
-            (webui->cnct_type == WEBUI_CNCT_TS_SOURCE) ||
-            (webui->cnct_type == WEBUI_CNCT_TS_SECONDARY)) {
-            if ((webui->cam->stream.norm.ts_cnct == 0) &&
-                (webui->cam->stream.sub.ts_cnct == 0) &&
-                (webui->cam->stream.motion.ts_cnct == 0) &&
-                (webui->cam->stream.source.ts_cnct == 0) &&
-                (webui->cam->stream.secondary.ts_cnct == 0)) {
-                webu_mpegts_free_context(webui);
-            }
-        }
-        if (webui->cnct_method == WEBUI_METHOD_POST) {
-            MHD_destroy_post_processor (webui->post_processor);
-        }
-        webu_context_free(webui);
+    if (webui->cnct_method == WEBUI_METHOD_POST) {
+        MHD_destroy_post_processor (webui->post_processor);
     }
+
+    webu_context_free(webui);
 
     return;
 }
@@ -1373,9 +1358,10 @@ static void webu_init_actions(ctx_motapp *motapp)
 {
     std::string parm_vl;
 
-    motapp->webcontrol_actions = (ctx_params*)mymalloc(sizeof(ctx_params));
+    motapp->webcontrol_actions = new ctx_params;
     motapp->webcontrol_actions->update_params = true;
-    util_parms_parse(motapp->webcontrol_actions, motapp->conf->webcontrol_actions);
+    util_parms_parse(motapp->webcontrol_actions
+        ,"webcontrol_actions", motapp->conf->webcontrol_actions);
 
     if (motapp->conf->webcontrol_parms == 0) {
         parm_vl = "off";
@@ -1395,7 +1381,6 @@ static void webu_init_actions(ctx_motapp *motapp)
     util_parms_add_default(motapp->webcontrol_actions,"ptz",parm_vl);
     util_parms_add_default(motapp->webcontrol_actions,"movies","on");
     util_parms_add_default(motapp->webcontrol_actions,"action_user",parm_vl);
-
 }
 
 /* Start the webcontrol */
@@ -1408,9 +1393,10 @@ static void webu_init_webcontrol(ctx_motapp *motapp)
         , _("Starting webcontrol on port %d")
         , motapp->conf->webcontrol_port);
 
-    motapp->webcontrol_headers = (ctx_params*)mymalloc(sizeof(ctx_params));
+    motapp->webcontrol_headers = new ctx_params;
     motapp->webcontrol_headers->update_params = true;
-    util_parms_parse(motapp->webcontrol_headers, motapp->conf->webcontrol_headers);
+    util_parms_parse(motapp->webcontrol_headers
+        , "webcontrol_headers", motapp->conf->webcontrol_headers);
 
     webu_init_actions(motapp);
 
@@ -1489,7 +1475,6 @@ static void webu_init_webcontrol(ctx_motapp *motapp)
 /* Shut down the webcontrol */
 void webu_deinit(ctx_motapp *motapp)
 {
-
     if (motapp->webcontrol_daemon != NULL) {
         motapp->webcontrol_finish = true;
         MHD_stop_daemon (motapp->webcontrol_daemon);
@@ -1500,36 +1485,20 @@ void webu_deinit(ctx_motapp *motapp)
         MHD_stop_daemon (motapp->webcontrol_daemon2);
     }
 
-    util_parms_free(motapp->webcontrol_headers);
-    myfree(&motapp->webcontrol_headers);
-
-    util_parms_free(motapp->webcontrol_actions);
-    myfree(&motapp->webcontrol_actions);
-
+    delete motapp->webcontrol_actions;
+    delete motapp->webcontrol_headers;
 }
 
 /* Start the webcontrol and streams */
 void webu_init(ctx_motapp *motapp)
 {
-    struct sigaction act;
-
-    /* We need to block some signals otherwise MHD will not function correctly. */
-    /* set signal handlers TO IGNORE */
-    memset(&act, 0, sizeof(act));
-    sigemptyset(&act.sa_mask);
-    act.sa_handler = SIG_IGN;
-    sigaction(SIGPIPE, &act, NULL);
-    sigaction(SIGCHLD, &act, NULL);
-
     motapp->webcontrol_daemon = NULL;
     motapp->webcontrol_daemon2 = NULL;
     motapp->webcontrol_finish = false;
 
-     /* Start the webcontrol */
     if (motapp->conf->webcontrol_port != 0 ) {
         webu_init_webcontrol(motapp);
     }
 
     return;
-
 }

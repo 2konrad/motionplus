@@ -87,8 +87,8 @@
 
 #define SLEEP(seconds, nanoseconds) {              \
                 struct timespec ts1;                \
-                ts1.tv_sec = (seconds);             \
-                ts1.tv_nsec = (nanoseconds);        \
+                ts1.tv_sec = seconds;             \
+                ts1.tv_nsec = (long)nanoseconds;        \
                 while (nanosleep(&ts1, &ts1) == -1); \
         }
 
@@ -114,6 +114,7 @@
 
     void mythreadname_set(const char *abbr, int threadnbr, const char *threadname);
     void mythreadname_get(char *threadname);
+    void mythreadname_get(std::string &threadname);
     bool mycheck_passthrough(ctx_dev *cam);
 
     char* mytranslate_text(const char *msgid, int setnls);
@@ -130,6 +131,8 @@
 
     AVFrame *myframe_alloc(void);
     void myframe_free(AVFrame *frame);
+    void myframe_key(AVFrame *frame);
+    void myframe_interlaced(AVFrame *frame);
     void mypacket_free(AVPacket *pkt);
     void myavcodec_close(AVCodecContext *codec_context);
     int myimage_get_buffer_size(enum MyPixelFormat pix_fmt, int width, int height);
@@ -138,12 +141,20 @@
     int mycopy_packet(AVPacket *dest_pkt, AVPacket *src_pkt);
     AVPacket *mypacket_alloc(AVPacket *pkt);
 
-    void util_parms_parse(ctx_params *params, std::string confline);
+    void util_parms_parse(ctx_params *params, std::string parm_desc, std::string confline);
     void util_parms_add_default(ctx_params *params, std::string parm_nm, std::string parm_vl);
     void util_parms_add_default(ctx_params *params, std::string parm_nm, int parm_vl);
-    void util_parms_add(ctx_params *params, const char *parm_nm, const char *parm_val);
-    void util_parms_free(ctx_params *params);
+    void util_parms_add(ctx_params *params, std::string parm_nm, std::string parm_val);
     void util_parms_update(ctx_params *params, std::string &confline);
 
+    int mtoi(std::string parm);
+    int mtoi(char *parm);
+    float mtof(char *parm);
+    float mtof(std::string parm);
+    bool mtob(std::string parm);
+    bool mtob(char *parm);
+    long mtol(std::string parm);
+    long mtol(char *parm);
+    std::string mtok(std::string &parm, std::string tok);
 
 #endif /* _INCLUDE_UTIL_HPP_ */

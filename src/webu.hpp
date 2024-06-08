@@ -35,16 +35,20 @@
     enum WEBUI_CNCT {
         WEBUI_CNCT_CONTROL,
         WEBUI_CNCT_FILE,
+        WEBUI_CNCT_JPG_MIN,
         WEBUI_CNCT_JPG_FULL,
         WEBUI_CNCT_JPG_SUB,
         WEBUI_CNCT_JPG_MOTION,
         WEBUI_CNCT_JPG_SOURCE,
         WEBUI_CNCT_JPG_SECONDARY,
+        WEBUI_CNCT_JPG_MAX,
+        WEBUI_CNCT_TS_MIN,
         WEBUI_CNCT_TS_FULL,
         WEBUI_CNCT_TS_SUB,
         WEBUI_CNCT_TS_MOTION,
         WEBUI_CNCT_TS_SOURCE,
         WEBUI_CNCT_TS_SECONDARY,
+        WEBUI_CNCT_TS_MAX,
         WEBUI_CNCT_UNKNOWN
     };
 
@@ -100,9 +104,11 @@
 
         FILE                        *req_file;      /* requested file*/
 
+        unsigned char               *all_img_data;  /* Image for all cameras */
+
         enum WEBUI_METHOD           cnct_method;    /* Connection method.  Get or Post */
 
-        uint64_t                    stream_pos;     /* Stream position of sent image */
+        size_t                      stream_pos;     /* Stream position of sent image */
         int                         stream_fps;     /* Stream rate per second */
         struct timespec             time_last;      /* Keep track of processing time for stream thread*/
         int                         mhd_first;      /* Boolean for whether it is the first connection*/

@@ -17,7 +17,6 @@
  *
 */
 
-
 #ifndef _INCLUDE_MOTIONPLUS_HPP_
 #define _INCLUDE_MOTIONPLUS_HPP_
 
@@ -51,6 +50,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <regex.h>
 
 #if defined(HAVE_PTHREAD_NP_H)
     #include <pthread_np.h>
@@ -66,6 +66,13 @@
         #include <libavutil/mathematics.h>
         #include <libavdevice/avdevice.h>
         #include <libavcodec/avcodec.h>
+        #include <libavformat/avio.h>
+        #include <libswscale/swscale.h>
+        #include <libavutil/avutil.h>
+        #include "libavutil/buffer.h"
+        #include "libavutil/error.h"
+        #include "libavutil/hwcontext.h"
+        #include "libavutil/mem.h"
     }
 #pragma GCC diagnostic pop
 
@@ -219,14 +226,18 @@ struct ctx_webu_clients {
 };
 
 struct ctx_params_item {
-    char    *param_name;       /* The name or description of the ID as requested by user*/
-    char    *param_value;      /* The value that the user wants the control set to*/
+    std::string     param_name;       /* The name or description of the ID as requested by user*/
+    std::string     param_value;      /* The value that the user wants the control set to*/
 };
 
+typedef std::list<ctx_params_item> p_lst;
+typedef p_lst::iterator p_it;
+
 struct ctx_params {
-    ctx_params_item *params_array;     /*Array of the controls the user specified*/
-    int params_count;                         /*Count of the controls the user specified*/
-    bool update_params;                       /*Bool for whether to update the parameters on the device*/
+    p_lst   params_array;       /*List of the controls the user specified*/
+    int     params_count;       /*Count of the controls the user specified*/
+    bool    update_params;      /*Bool for whether to update the parameters on the device*/
+    std::string params_desc;    /* Description of params*/
 };
 
 struct ctx_coord {
@@ -307,13 +318,32 @@ struct ctx_images {
 
 };
 
+struct ctx_all_loc {
+    int     row;
+    int     col;
+    int     offset_row;
+    int     offset_col;
+    int     offset_user_row;
+    int     offset_user_col;
+    int     scale;
+};
+
+struct ctx_all_sizes {
+    int     width;
+    int     height;
+    int     img_sz;     /* Image size*/
+    bool    reset;
+};
+
+
 struct ctx_stream_data {
-    unsigned char   *jpeg_data; /* Image compressed as JPG */
-    long            jpeg_size;  /* The number of bytes for jpg */
+    unsigned char   *jpg_data;  /* Image compressed as JPG */
+    int             jpg_sz;     /* The number of bytes for jpg */
     int             consumed;   /* Bool for whether the jpeg data was consumed*/
-    unsigned char   *image;     /* The base data used for image */
+    unsigned char   *img_data;  /* The base data used for image */
     int             jpg_cnct;   /* Counter of the number of jpg connections*/
     int             ts_cnct;    /* Counter of the number of mpegts connections */
+    int             all_cnct;   /* Counter of the number of all camera connections */
 };
 
 struct ctx_stream {
@@ -388,6 +418,10 @@ struct ctx_snd_info {
     std::string                 trig_freq;
     std::string                 trig_nbr;
     std::string                 trig_nm;
+    ctx_params                  *params;        /* Device parameters*/
+    ctx_snd_fftw                *snd_fftw;      /* fftw for sound*/
+    ctx_snd_alsa                *snd_alsa;      /* Alsa device for sound*/
+    ctx_snd_pulse               *snd_pulse;     /* PulseAudio for sound*/
 };
 
 struct ctx_dev {
@@ -408,7 +442,7 @@ struct ctx_dev {
     ctx_movie       *movie_motion;
     ctx_movie       *movie_timelapse;
     ctx_stream      stream;
-
+    ctx_snd_info    *snd_info;      /* Values for sound processing*/
     cls_libcam      *libcam;
 
     bool                    algsec_inuse;        /*Bool for whether we have secondary detection*/
@@ -434,8 +468,8 @@ struct ctx_dev {
     bool                    running_dev;     /* Device thread is running*/
     volatile int            watchdog;
 
-    int                     event_nr;
-    int                     prev_event;
+    int                     event_curr_nbr;
+    int                     event_prev_nbr;
     char                    eventid[20];        /* Cam ID + Date/Time 99999yyyymmddhhmmss */
     char                    text_event_string[PATH_MAX];        /* The text for conv. spec. %C - */
     int                     text_scale;
@@ -485,20 +519,16 @@ struct ctx_dev {
     int previous_diffs, previous_location_x, previous_location_y;
     bool                    passflag;  //flag first frame vs all others.
 
+    ctx_all_loc             all_loc;    /* position on all camera image */
+
     pthread_mutex_t         parms_lock;
-    ctx_params              *params;            /* Device parameters*/
-    bool                    parms_changed;      /*bool indicating if the parms have changed */
+    bool                    parms_changed;  /*bool indicating if the parms have changed */
 
     uint64_t                info_diff_tot;
     uint64_t                info_diff_cnt;
     int                     info_sdev_min;
     int                     info_sdev_max;
     uint64_t                info_sdev_tot;
-
-    ctx_snd_fftw            *snd_fftw;  /* fftw for sound*/
-    ctx_snd_alsa            *snd_alsa;  /* Alsa device for sound*/
-    ctx_snd_pulse           *snd_pulse; /* PulseAudio for sound*/
-    ctx_snd_info            *snd_info;  /* Values for sound processing*/
 
 };
 
@@ -522,6 +552,7 @@ struct ctx_motapp {
     ctx_config          *conf;
     int                 cam_cnt;
     int                 snd_cnt;
+    ctx_all_sizes       *all_sizes;
 
     volatile int                webcontrol_running;
     volatile int                webcontrol_finish;

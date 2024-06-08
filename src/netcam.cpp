@@ -17,20 +17,6 @@
  *
 */
 
-
-/***********************************************************
- *
- *  The functions:
- *      netcam_setup
- *      netcam_next
- *      netcam_cleanup
- *  are called from video_common.c which is on the main thread
- *
- ***********************************************************/
-
-#include <stdio.h>
-#include <regex.h>
-#include <time.h>
 #include "motionplus.hpp"
 #include "conf.hpp"
 #include "logger.hpp"
@@ -63,45 +49,6 @@ static void netcam_check_buffsize(netcam_buff_ptr buff, size_t numbytes)
     buff->size = new_size;
 }
 
-/*
- * The following three routines (netcam_url_match, netcam_url_parse and
- * netcam_url_free are for 'parsing' (i.e. separating into the relevant
- * components) the URL provided by the user.  They make use of regular
- * expressions (which is outside the scope of this module, so detailed
- * comments are not provided).  netcam_url_parse is called from netcam_start,
- * and puts the "broken-up" components of the URL into the "url" element of
- * the netcam_context structure.
- *
- * Note that the routines are not "very clever", but they work sufficiently
- * well for the limited requirements of this module.  The expression:
- *   (http)://(((.*):(.*))@)?([^/:]|[-.a-z0-9]+)(:([0-9]+))?($|(/[^:]*))
- * requires
- *   1) a string which begins with 'http', followed by '://'
- *   2) optionally a '@' which is preceded by two strings
- *      (with 0 or more characters each) separated by a ':'
- *      [this is for an optional username:password]
- *   3) a string comprising alpha-numerics, '-' and '.' characters
- *      [this is for the hostname]
- *   4) optionally a ':' followed by one or more numeric characters
- *      [this is for an optional port number]
- *   5) finally, either an end of line or a series of segments,
- *      each of which begins with a '/', and contains anything
- *      except a ':'
- */
-
-/**
- * netcam_url_match
- *
- *      Finds the matched part of a regular expression
- *
- * Parameters:
- *
- *      m          A structure containing the regular expression to be used
- *      input      The input string
- *
- * Returns:        The string which was matched
- *
- */
 static char *netcam_url_match(regmatch_t m, const char *input)
 {
     char *match = NULL;
@@ -121,136 +68,97 @@ static char *netcam_url_match(regmatch_t m, const char *input)
 
 static void netcam_url_invalid(ctx_url *parse_url)
 {
-
     MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO,_("Invalid URL.  Can not parse values."));
 
-    parse_url->host =(char*) malloc(5);
-    parse_url->service =(char*) malloc(5);
-    parse_url->path =(char*) malloc(10);
-    parse_url->userpass =(char*) malloc(10);
     parse_url->port = 0;
-    sprintf(parse_url->host, "%s","????");
-    sprintf(parse_url->service, "%s","????");
-    sprintf(parse_url->path, "%s","INVALID");
-    sprintf(parse_url->userpass, "%s","INVALID");
+    parse_url->host = "????";
+    parse_url->service = "????";
+    parse_url->path = "INVALID";
+    parse_url->userpass = "INVALID";
 
 }
-/**
- * netcam_url_parse
- *
- *      parses a string containing a URL into it's components
- *
- * Parameters:
- *      parse_url          A structure which will receive the results
- *                         of the parsing
- *      text_url           The input string containing the URL
- *
- * Returns:                Nothing
- *
- */
-static void netcam_url_parse(ctx_url *parse_url, const char *text_url)
+static void netcam_url_parse(ctx_url *parse_url, std::string text_url)
 {
     char *s;
-    int i;
+    int i, retcd;
+    std::string regstr;
 
-    const char *re = "(.*)://(((.*):(.*))@)?"
-                     "([^/:]|[-_.a-z0-9]+)(:([0-9]+))?($|(/[^*]*))";
     regex_t pattbuf;
     regmatch_t matches[10];
 
-    if (!strncmp(text_url, "file", 4)) {
-        re = "(file)://(((.*):(.*))@)?([/:])?(:([0-9]+))?($|(/[^*]*))";
-    }
-    if (!strncmp(text_url, "v4l2", 4)) {
-        re = "(v4l2)://(((.*):(.*))@)?([/:])?(:([0-9]+))?($|(/[^*]*))";
-    }
-    /*  Note that log messages are commented out to avoid leaking info related
-     *  to user/host/pass etc.  Keeing them in the code for easier debugging if
-     *  it is needed
-     */
-
-    //MOTPLS_LOG(DBG, TYPE_NETCAM, NO_ERRNO, "Entry netcam_url_parse data %s",text_url);
-
-    memset(parse_url, 0, sizeof(ctx_url));
-    /*
-     * regcomp compiles regular expressions into a form that is
-     * suitable for regexec searches
-     * regexec matches the URL string against the regular expression
-     * and returns an array of pointers to strings matching each match
-     * within (). The results that we need are finally placed in parse_url.
-     */
-    if (!regcomp(&pattbuf, re, REG_EXTENDED | REG_ICASE)) {
-        if (regexec(&pattbuf, text_url, 10, matches, 0) != REG_NOMATCH) {
-            for (i = 0; i < 10; i++) {
-                if ((s = netcam_url_match(matches[i], text_url)) != NULL) {
-                    //MOTPLS_LOG(DBG, TYPE_NETCAM, NO_ERRNO, "Parse case %d data %s", i, s);
-                    switch (i) {
-                    case 1:
-                        parse_url->service = s;
-                        break;
-                    case 3:
-                        parse_url->userpass = s;
-                        break;
-                    case 6:
-                        parse_url->host = s;
-                        break;
-                    case 8:
-                        parse_url->port = atoi(s);
-                        free(s);
-                        break;
-                    case 9:
-                        parse_url->path = s;
-                        break;
-                        /* Other components ignored */
-                    default:
-                        free(s);
-                        break;
-                    }
-                }
-            }
-        } else {
-            netcam_url_invalid(parse_url);
-        }
+    if (text_url.substr(0,4) == "file") {
+        regstr = "(file)://(((.*):(.*))@)?([/:])?(:([0-9]+))?($|(/[^*]*))";
+    } else if (text_url.substr(0,4) == "v4l2") {
+        regstr = "(v4l2)://(((.*):(.*))@)?([/:])?(:([0-9]+))?($|(/[^*]*))";
     } else {
-        netcam_url_invalid(parse_url);
+        regstr = "(.*)://(((.*):(.*))@)?"
+            "([^/:]|[-_.a-z0-9]+)(:([0-9]+))?($|(/[^*]*))";
     }
-    if (((!parse_url->port) && (parse_url->service)) ||
-        ((parse_url->port > 65535) && (parse_url->service))) {
-        if (mystreq(parse_url->service, "http")) {
+
+    parse_url->host = "";
+    parse_url->path = "";
+    parse_url->port = 0;
+    parse_url->service = "";
+    parse_url->userpass = "";
+
+    retcd = regcomp(&pattbuf, regstr.c_str(), REG_EXTENDED | REG_ICASE);
+    if (retcd != 0) {
+        netcam_url_invalid(parse_url);
+        return;
+    }
+
+    retcd = regexec(&pattbuf, text_url.c_str(), 10, matches, 0);
+    if (retcd == REG_NOMATCH) {
+        regfree(&pattbuf);
+        netcam_url_invalid(parse_url);
+        return;
+    }
+
+    for (i = 0; i < 10; i++) {
+        if ((s = netcam_url_match(matches[i], text_url.c_str())) != NULL) {
+            //MOTPLS_LOG(DBG, TYPE_NETCAM, NO_ERRNO, "Parse case %d data %s", i, s);
+            switch (i) {
+            case 1:
+                parse_url->service = s;
+                break;
+            case 3:
+                parse_url->userpass = s;
+                break;
+            case 6:
+                parse_url->host = s;
+                break;
+            case 8:
+                parse_url->port = atoi(s);
+                break;
+            case 9:
+                parse_url->path = s;
+                break;
+                /* Other components ignored */
+            default:
+                break;
+            }
+            free(s);
+        }
+    }
+
+    if (((parse_url->port == 0) && (parse_url->service != "")) ||
+        ((parse_url->port > 65535) && (parse_url->service!= ""))) {
+        if (parse_url->service == "http") {
             parse_url->port = 80;
-        } else if (mystreq(parse_url->service, "https")) {
+        } else if (parse_url->service == "https") {
             parse_url->port = 443;
-        } else if (mystreq(parse_url->service, "ftp")) {
+        } else if (parse_url->service == "ftp") {
             parse_url->port = 21;
-        } else if (mystreq(parse_url->service, "rtmp")) {
+        } else if (parse_url->service == "rtmp") {
             parse_url->port = 1935;
-        } else if (mystreq(parse_url->service, "rtsp")) {
+        } else if (parse_url->service == "rtsp") {
             parse_url->port = 554;
         }
-        MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO, _("Using port number %d"),parse_url->port);
+        MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
+            , _("Using port number %d"), parse_url->port);
     }
 
     regfree(&pattbuf);
-}
-
-/**
- * netcam_url_free
- *
- *      General cleanup of the URL structure, called from netcam_cleanup.
- *
- * Parameters:
- *
- *      parse_url       Structure containing the parsed data.
- *
- * Returns:             Nothing
- *
- */
-static void netcam_url_free(ctx_url *parse_url)
-{
-    myfree(&parse_url->service);
-    myfree(&parse_url->userpass);
-    myfree(&parse_url->host);
-    myfree(&parse_url->path);
 }
 
 static void netcam_free_pkt(ctx_netcam *netcam)
@@ -261,22 +169,16 @@ static void netcam_free_pkt(ctx_netcam *netcam)
 
 static int netcam_check_pixfmt(ctx_netcam *netcam)
 {
-    /* Determine if the format is YUV420P */
-    int retcd;
-
-    retcd = -1;
+    int retcd = -1;
     if (((enum AVPixelFormat)netcam->frame->format == MY_PIX_FMT_YUV420P) ||
         ((enum AVPixelFormat)netcam->frame->format == MY_PIX_FMT_YUVJ420P)) {
         retcd = 0;
     }
-
     return retcd;
-
 }
 
 static void netcam_pktarray_free(ctx_netcam *netcam)
 {
-
     int indx;
     pthread_mutex_lock(&netcam->mutex_pktarray);
         if (netcam->pktarray_size > 0) {
@@ -289,12 +191,10 @@ static void netcam_pktarray_free(ctx_netcam *netcam)
         netcam->pktarray_size = 0;
         netcam->pktarray_index = -1;
     pthread_mutex_unlock(&netcam->mutex_pktarray);
-
 }
 
 static void netcam_null_context(ctx_netcam *netcam)
 {
-
     netcam->swsctx          = NULL;
     netcam->swsframe_in     = NULL;
     netcam->swsframe_out    = NULL;
@@ -303,12 +203,10 @@ static void netcam_null_context(ctx_netcam *netcam)
     netcam->format_context  = NULL;
     netcam->transfer_format = NULL;
     netcam->hw_device_ctx   = NULL;
-
 }
 
 static void netcam_close_context(ctx_netcam *netcam)
 {
-
     if (netcam->swsctx          != NULL) sws_freeContext(netcam->swsctx);
     if (netcam->swsframe_in     != NULL) myframe_free(netcam->swsframe_in);
     if (netcam->swsframe_out    != NULL) myframe_free(netcam->swsframe_out);
@@ -319,7 +217,6 @@ static void netcam_close_context(ctx_netcam *netcam)
     if (netcam->transfer_format != NULL) avformat_close_input(&netcam->transfer_format);
     if (netcam->hw_device_ctx   != NULL) av_buffer_unref(&netcam->hw_device_ctx);
     netcam_null_context(netcam);
-
 }
 
 static void netcam_pktarray_resize(ctx_dev *cam, bool is_highres)
@@ -388,15 +285,14 @@ static void netcam_pktarray_resize(ctx_dev *cam, bool is_highres)
             netcam->pktarray_size = newsize;
 
             MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Resized packet array to %d"), netcam->cameratype,newsize);
+                , _("%s:Resized packet array to %d")
+                , netcam->cameratype.c_str(), newsize);
         }
     pthread_mutex_unlock(&netcam->mutex_pktarray);
-
 }
 
 static void netcam_pktarray_add(ctx_netcam *netcam)
 {
-
     int indx_next;
     int retcd;
     char errstr[128];
@@ -425,8 +321,8 @@ static void netcam_pktarray_add(ctx_netcam *netcam)
         if ((netcam->interrupted) || (retcd < 0)) {
             av_strerror(retcd, errstr, sizeof(errstr));
             MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: av_copy_packet: %s ,Interrupt: %s")
-                ,netcam->cameratype
+                ,_("%s:av_copy_packet:%s ,Interrupt:%s")
+                ,netcam->cameratype.c_str()
                 ,errstr, netcam->interrupted ? _("true"):_("false"));
             mypacket_free(netcam->pktarray[indx_next].packet);
             netcam->pktarray[indx_next].packet = NULL;
@@ -441,7 +337,6 @@ static void netcam_pktarray_add(ctx_netcam *netcam)
 
         netcam->pktarray_index = indx_next;
     pthread_mutex_unlock(&netcam->mutex_pktarray);
-
 }
 
 static int netcam_decode_sw(ctx_netcam *netcam)
@@ -456,14 +351,14 @@ static int netcam_decode_sw(ctx_netcam *netcam)
                 retcd = 0;
             } else if (retcd == AVERROR_INVALIDDATA) {
                 MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                    ,_("%s: Ignoring packet with invalid data")
-                    ,netcam->cameratype);
+                    ,_("%s:Ignoring packet with invalid data")
+                    ,netcam->cameratype.c_str());
                 retcd = 0;
             } else if (retcd < 0) {
                 av_strerror(retcd, errstr, sizeof(errstr));
                     MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                        ,_("%s: Rec frame error: %s")
-                        ,netcam->cameratype, errstr);
+                        ,_("%s:Rec frame error:%s")
+                        ,netcam->cameratype.c_str(), errstr);
                 retcd = -1;
             } else {
                 retcd = -1;
@@ -490,8 +385,8 @@ static int netcam_decode_vaapi(ctx_netcam *netcam)
         retcd = av_hwframe_get_buffer(netcam->codec_context->hw_frames_ctx, hw_frame, 0);
         if (retcd < 0) {
             MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                , _("%s: Error getting hw frame buffer")
-                , netcam->cameratype);
+                , _("%s:Error getting hw frame buffer")
+                , netcam->cameratype.c_str());
             myframe_free(hw_frame);
             return -1;
         }
@@ -502,14 +397,14 @@ static int netcam_decode_vaapi(ctx_netcam *netcam)
                 retcd = 0;
             } else if (retcd == AVERROR_INVALIDDATA) {
                 MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                    ,_("%s: Ignoring packet with invalid data")
-                    ,netcam->cameratype);
+                    ,_("%s:Ignoring packet with invalid data")
+                    ,netcam->cameratype.c_str());
                 retcd = 0;
             } else if (retcd < 0) {
                 av_strerror(retcd, errstr, sizeof(errstr));
                     MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                        ,_("%s: Rec frame error: %s")
-                        ,netcam->cameratype, errstr);
+                        ,_("%s:Rec frame error:%s")
+                        ,netcam->cameratype.c_str(), errstr);
                 retcd = -1;
             } else {
                 retcd = -1;
@@ -521,8 +416,8 @@ static int netcam_decode_vaapi(ctx_netcam *netcam)
         retcd = av_hwframe_transfer_data(netcam->frame, hw_frame, 0);
         if (retcd < 0) {
             MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Error transferring HW decoded to system memory")
-                ,netcam->cameratype);
+                ,_("%s:Error transferring HW decoded to system memory")
+                ,netcam->cameratype.c_str());
             myframe_free(hw_frame);
             return -1;
         }
@@ -550,14 +445,14 @@ static int netcam_decode_cuda(ctx_netcam *netcam)
                 retcd = 0;
             } else if (retcd == AVERROR_INVALIDDATA) {
                 MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                    ,_("%s: Ignoring packet with invalid data")
-                    ,netcam->cameratype);
+                    ,_("%s:Ignoring packet with invalid data")
+                    ,netcam->cameratype.c_str());
                 retcd = 0;
             } else if (retcd < 0) {
                 av_strerror(retcd, errstr, sizeof(errstr));
                     MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                        ,_("%s: Rec frame error: %s")
-                        ,netcam->cameratype, errstr);
+                        ,_("%s:Rec frame error:%s")
+                        ,netcam->cameratype.c_str(), errstr);
                 retcd = -1;
             } else {
                 retcd = -1;
@@ -570,8 +465,8 @@ static int netcam_decode_cuda(ctx_netcam *netcam)
         retcd = av_hwframe_transfer_data(netcam->frame, hw_frame, 0);
         if (retcd < 0) {
             MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Error transferring HW decoded to system memory")
-                ,netcam->cameratype);
+                ,_("%s:Error transferring HW decoded to system memory")
+                ,netcam->cameratype.c_str());
             myframe_free(hw_frame);
             return -1;
         }
@@ -600,14 +495,14 @@ static int netcam_decode_drm(ctx_netcam *netcam)
                 retcd = 0;
             } else if (retcd == AVERROR_INVALIDDATA) {
                 MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                    ,_("%s: Ignoring packet with invalid data")
-                    ,netcam->cameratype);
+                    ,_("%s:Ignoring packet with invalid data")
+                    ,netcam->cameratype.c_str());
                 retcd = 0;
             } else if (retcd < 0) {
                 av_strerror(retcd, errstr, sizeof(errstr));
                     MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                        ,_("%s: Rec frame error: %s")
-                        ,netcam->cameratype, errstr);
+                        ,_("%s:Rec frame error:%s")
+                        ,netcam->cameratype.c_str(), errstr);
                 retcd = -1;
             } else {
                 retcd = -1;
@@ -620,8 +515,8 @@ static int netcam_decode_drm(ctx_netcam *netcam)
         retcd = av_hwframe_transfer_data(netcam->frame, hw_frame, 0);
         if (retcd < 0) {
             MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Error transferring HW decoded to system memory")
-                ,netcam->cameratype);
+                ,_("%s:Error transferring HW decoded to system memory")
+                ,netcam->cameratype.c_str());
             myframe_free(hw_frame);
             return -1;
         }
@@ -647,28 +542,28 @@ static int netcam_decode_video(ctx_netcam *netcam)
         * we get a good image.
         */
         if (netcam->finish) {
-            return 0;   /* This just speeds up the shutdown time */
+            return 0;
         }
 
         retcd = avcodec_send_packet(netcam->codec_context, netcam->packet_recv);
         if ((netcam->interrupted) || (netcam->finish)) {
             MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Interrupted or finish on send")
-                ,netcam->cameratype);
+                ,_("%s:Interrupted or finish on send")
+                ,netcam->cameratype.c_str());
             return -1;
         }
         if (retcd == AVERROR_INVALIDDATA) {
             MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Send ignoring packet with invalid data")
-                ,netcam->cameratype);
+                ,_("%s:Send ignoring packet with invalid data")
+                ,netcam->cameratype.c_str());
             return 0;
         }
         if (retcd < 0 && retcd != AVERROR_EOF) {
             av_strerror(retcd, errstr, sizeof(errstr));
             MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Error sending packet to codec: %s")
-                ,netcam->cameratype, errstr);
-            if (mystreq(netcam->service, "file")) {
+                ,_("%s:Error sending packet to codec:%s")
+                ,netcam->cameratype.c_str(), errstr);
+            if (netcam->service == "file") {
                 return 0;
             } else {
                 return -1;
@@ -688,7 +583,6 @@ static int netcam_decode_video(ctx_netcam *netcam)
         return retcd;
 
     #else
-
         int retcd;
         int check = 0;
         char errstr[128];
@@ -699,7 +593,7 @@ static int netcam_decode_video(ctx_netcam *netcam)
         (void)netcam_decode_drm;
 
         if (netcam->finish) {
-            return 0;   /* This just speeds up the shutdown time */
+            return 0;
         }
         retcd = avcodec_decode_video2(netcam->codec_context, netcam->frame, &check, &netcam->packet_recv);
         if ((netcam->interrupted) || (netcam->finish)) {
@@ -721,23 +615,21 @@ static int netcam_decode_video(ctx_netcam *netcam)
         }
         return 1;
     #endif
-
 }
 
 static int netcam_decode_packet(ctx_netcam *netcam)
 {
-
     int frame_size;
     int retcd;
 
     if (netcam->finish) {
-        return -1;   /* This just speeds up the shutdown time */
+        return -1;
     }
 
     if (netcam->packet_recv->stream_index == netcam->audio_stream_index) {
         MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-            ,_("%s: Error decoding video packet...it is audio")
-            ,netcam->cameratype);
+            ,_("%s:Error decoding video packet...it is audio")
+            ,netcam->cameratype.c_str());
     }
 
     retcd = netcam_decode_video(netcam);
@@ -759,8 +651,8 @@ static int netcam_decode_packet(ctx_netcam *netcam)
                                     ,frame_size);
     if ((retcd < 0) || (netcam->interrupted)) {
         MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-            ,_("%s: Error decoding video packet: Copying to buffer")
-            ,netcam->cameratype);
+            ,_("%s:Error decoding video packet:Copying to buffer")
+            ,netcam->cameratype.c_str());
         return -1;
     }
 
@@ -778,20 +670,20 @@ static void netcam_hwdecoders(ctx_netcam *netcam)
         }
         if ((netcam->hw_type == AV_HWDEVICE_TYPE_NONE) && (netcam->first_image)) {
             MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: HW Devices: ")
-                , netcam->cameratype);
+                ,_("%s:HW Devices:")
+                , netcam->cameratype.c_str());
             while((netcam->hw_type = av_hwdevice_iterate_types(netcam->hw_type)) != AV_HWDEVICE_TYPE_NONE){
                 if ((netcam->hw_type == AV_HWDEVICE_TYPE_VAAPI) ||
                     (netcam->hw_type == AV_HWDEVICE_TYPE_CUDA)  ||
                     (netcam->hw_type == AV_HWDEVICE_TYPE_DRM)) {
                     MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                        ,_("%s: %s (available)")
-                        , netcam->cameratype
+                        ,_("%s: %s(available)")
+                        , netcam->cameratype.c_str()
                         , av_hwdevice_get_type_name(netcam->hw_type));
                 } else {
                     MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                        ,_("%s: %s (not implemented)")
-                        , netcam->cameratype
+                        ,_("%s: %s(not implemented)")
+                        , netcam->cameratype.c_str()
                         , av_hwdevice_get_type_name(netcam->hw_type));
                 }
             }
@@ -801,7 +693,6 @@ static void netcam_hwdecoders(ctx_netcam *netcam)
         (void)netcam;
         return;
     #endif
-
 }
 
 static enum AVPixelFormat netcam_getfmt_vaapi(AVCodecContext *avctx, const enum AVPixelFormat *pix_fmts)
@@ -824,6 +715,7 @@ static enum AVPixelFormat netcam_getfmt_vaapi(AVCodecContext *avctx, const enum 
         return AV_PIX_FMT_NONE;
     #endif
 }
+
 static enum AVPixelFormat netcam_getfmt_cuda(AVCodecContext *avctx, const enum AVPixelFormat *pix_fmts)
 {
     #if ( MYFFVER >= 57083)
@@ -865,35 +757,36 @@ static enum AVPixelFormat netcam_getfmt_drm(AVCodecContext *avctx, const enum AV
 static void netcam_decoder_error(ctx_netcam *netcam, int retcd, const char* fnc_nm)
 {
     char errstr[128];
-    int indx;
+    p_lst *lst = &netcam->params->params_array;
+    p_it it;
 
     if (netcam->interrupted) {
         MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-            ,_("%s: Interrupted"),netcam->cameratype);
+            ,_("%s:Interrupted"),netcam->cameratype.c_str());
     } else {
         if (retcd < 0) {
             av_strerror(retcd, errstr, sizeof(errstr));
             MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: %s: %s"),netcam->cameratype,fnc_nm, errstr);
+                ,_("%s:%s:%s"),netcam->cameratype.c_str()
+                ,fnc_nm, errstr);
         } else {
             MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: %s: Failed"), netcam->cameratype,fnc_nm);
+                ,_("%s:%s:Failed"), netcam->cameratype.c_str()
+                ,fnc_nm);
         }
     }
 
-    if (mystrne(netcam->decoder_nm,"NULL")) {
+    if (netcam->decoder_nm != "NULL") {
         MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
-            ,_("%s: Decoder %s did not work.")
-            ,netcam->cameratype, netcam->decoder_nm);
+            ,_("%s:Decoder %s did not work.")
+            ,netcam->cameratype.c_str(), netcam->decoder_nm.c_str());
         MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
-            ,_("%s: Ignoring and removing the user requested decoder %s")
-            ,netcam->cameratype, netcam->decoder_nm);
+            ,_("%s:Ignoring and removing the user requested decoder %s")
+            ,netcam->cameratype.c_str(), netcam->decoder_nm.c_str());
 
-        for (indx = 0; indx < netcam->params->params_count; indx++) {
-            if (mystreq(netcam->params->params_array[indx].param_name,"decoder") ) {
-                myfree(&netcam->params->params_array[indx].param_value);
-                netcam->params->params_array[indx].param_value = (char*)mymalloc(5);
-                snprintf(netcam->params->params_array[indx].param_value, 5, "%s","NULL");
+        for (it = lst->begin(); it != lst->end(); it++) {
+            if (it->param_name == "decoder") {
+                it->param_value = "NULL";
                 break;
             }
         }
@@ -904,11 +797,8 @@ static void netcam_decoder_error(ctx_netcam *netcam, int retcd, const char* fnc_
             util_parms_update(netcam->params, netcam->conf->netcam_params);
         }
 
-        myfree(&netcam->decoder_nm);
-        netcam->decoder_nm = (char*)mymalloc(5);
-        snprintf(netcam->decoder_nm, 5, "%s","NULL");
+        netcam->decoder_nm = "NULL";
     }
-
 }
 
 static int netcam_init_vaapi(ctx_netcam *netcam)
@@ -918,12 +808,13 @@ static int netcam_init_vaapi(ctx_netcam *netcam)
         AVPixelFormat *pixelformats = NULL;
 
         MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-            ,_("%s: Initializing vaapi decoder"),netcam->cameratype);
+            ,_("%s:Initializing vaapi decoder")
+            ,netcam->cameratype.c_str());
 
         netcam->hw_type = av_hwdevice_find_type_by_name("vaapi");
         if (netcam->hw_type == AV_HWDEVICE_TYPE_NONE) {
-            MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO,_("%s: Unable to find vaapi hw device")
-                , netcam->cameratype);
+            MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO,_("%s:Unable to find vaapi hw device")
+                , netcam->cameratype.c_str());
             netcam_decoder_error(netcam, 0, "av_hwdevice");
             return -1;
         }
@@ -994,8 +885,8 @@ static int netcam_init_vaapi(ctx_netcam *netcam)
             , 0);
         if (retcd < 0) {
             MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Error enumerating HW pixel types")
-                ,netcam->cameratype);
+                ,_("%s:Error enumerating HW pixel types")
+                ,netcam->cameratype.c_str());
             netcam_decoder_error(netcam, retcd, "initvaapi 3");
             return -1;
         }
@@ -1007,8 +898,8 @@ static int netcam_init_vaapi(ctx_netcam *netcam)
         for (indx=0; pixelformats[indx] != AV_PIX_FMT_NONE; indx++) {
             descr = av_pix_fmt_desc_get(pixelformats[indx]);
             MOTPLS_LOG(DBG, TYPE_NETCAM, NO_ERRNO
-                , _("%s: Available HW pixel type: %s")
-                , netcam->cameratype
+                , _("%s:Available HW pixel type:%s")
+                , netcam->cameratype.c_str()
                 ,descr->name);
         }
         av_freep(&pixelformats);
@@ -1027,12 +918,12 @@ static int netcam_init_cuda(ctx_netcam *netcam)
         int retcd;
 
         MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-            ,_("%s: Initializing cuda decoder"),netcam->cameratype);
+            ,_("%s:Initializing cuda decoder"),netcam->cameratype.c_str());
 
         netcam->hw_type = av_hwdevice_find_type_by_name("cuda");
         if (netcam->hw_type == AV_HWDEVICE_TYPE_NONE){
-            MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO,_("%s: Unable to find cuda hw device")
-                , netcam->cameratype);
+            MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO,_("%s:Unable to find cuda hw device")
+                , netcam->cameratype.c_str());
             netcam_decoder_error(netcam, 0, "av_hwdevice");
             return -1;
         }
@@ -1078,12 +969,13 @@ static int netcam_init_drm(ctx_netcam *netcam)
         int retcd;
 
         MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-            ,_("%s: Initializing drm decoder"),netcam->cameratype);
+            ,_("%s:Initializing drm decoder")
+            ,netcam->cameratype.c_str());
 
         netcam->hw_type = av_hwdevice_find_type_by_name("drm");
         if (netcam->hw_type == AV_HWDEVICE_TYPE_NONE){
-            MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO,_("%s: Unable to find drm hw device")
-                , netcam->cameratype);
+            MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO,_("%s:Unable to find drm hw device")
+                , netcam->cameratype.c_str());
             netcam_decoder_error(netcam, 0, "av_hwdevice");
             return -1;
         }
@@ -1129,15 +1021,19 @@ static int netcam_init_swdecoder(ctx_netcam *netcam)
         int retcd;
 
         MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-            ,_("%s: Initializing decoder"),netcam->cameratype);
+            ,_("%s:Initializing decoder"),netcam->cameratype.c_str());
 
-        if (mystrne(netcam->decoder_nm,"NULL")) {
-            netcam->decoder = avcodec_find_decoder_by_name(netcam->decoder_nm);
+        if (netcam->decoder_nm != "NULL") {
+            netcam->decoder = avcodec_find_decoder_by_name(
+                netcam->decoder_nm.c_str());
             if (netcam->decoder == NULL) {
-                netcam_decoder_error(netcam, 0, "avcodec_find_decoder_by_name");
+                netcam_decoder_error(netcam, 0
+                    , "avcodec_find_decoder_by_name");
             } else {
-                MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO,_("%s: Using decoder %s")
-                    ,netcam->cameratype, netcam->decoder_nm);
+                MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
+                    ,_("%s:Using decoder %s")
+                    , netcam->cameratype.c_str()
+                    , netcam->decoder_nm.c_str());
             }
         }
         if (netcam->decoder == NULL) {
@@ -1179,7 +1075,6 @@ static int netcam_init_swdecoder(ctx_netcam *netcam)
         }
         return 0;
     #endif
-
 }
 
 static int netcam_open_codec(ctx_netcam *netcam)
@@ -1189,7 +1084,7 @@ static int netcam_open_codec(ctx_netcam *netcam)
         int retcd;
 
         if (netcam->finish) {
-            return -1;   /* This just speeds up the shutdown time */
+            return -1;
         }
 
         netcam_hwdecoders(netcam);
@@ -1212,17 +1107,17 @@ static int netcam_open_codec(ctx_netcam *netcam)
         netcam->video_stream_index = retcd;
         netcam->strm = netcam->format_context->streams[netcam->video_stream_index];
 
-        if (mystrceq(netcam->decoder_nm,"vaapi")) {
+        if (netcam->decoder_nm == "vaapi") {
             if (netcam_init_vaapi(netcam) < 0) {
                 netcam_decoder_error(netcam, retcd, "hwvaapi_init");
                 return -1;
             }
-        } else if (mystrceq(netcam->decoder_nm,"cuda")){
+        } else if (netcam->decoder_nm == "cuda"){
             if (netcam_init_cuda(netcam) <0 ) {
                 netcam_decoder_error(netcam, retcd, "hwcuda_init");
                 return -1;
             }
-	    } else if (mystrceq(netcam->decoder_nm,"drm")){
+	    } else if (netcam->decoder_nm == "drm"){
             if (netcam_init_drm(netcam) < 0) {;
                 netcam_decoder_error(netcam, retcd, "hwdrm_init");
                 return -1;
@@ -1238,7 +1133,7 @@ static int netcam_open_codec(ctx_netcam *netcam)
         }
 
         MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-            ,_("%s: Decoder opened"),netcam->cameratype);
+            ,_("%s:Decoder opened"),netcam->cameratype.c_str());
 
         return 0;
     #else
@@ -1249,7 +1144,7 @@ static int netcam_open_codec(ctx_netcam *netcam)
         (void)netcam_init_drm;
 
         if (netcam->finish) {
-            /* This just speeds up the shutdown time */
+
             return -1;
         }
 
@@ -1268,24 +1163,10 @@ static int netcam_open_codec(ctx_netcam *netcam)
 
         return retcd;
     #endif
-
-}
-
-static ctx_netcam *netcam_new_context(void)
-{
-    ctx_netcam *ret;
-
-    /* Note that mymalloc will exit on any problem. */
-    ret =(ctx_netcam*) mymalloc(sizeof(ctx_netcam));
-
-    memset(ret, 0, sizeof(ctx_netcam));
-
-    return ret;
 }
 
 static int netcam_interrupt(void *ctx)
 {
-    /* Must return as an int since this is a callback to a C function */
     ctx_netcam *netcam = (ctx_netcam *)ctx;
 
     if (netcam->finish) {
@@ -1299,8 +1180,8 @@ static int netcam_interrupt(void *ctx)
         clock_gettime(CLOCK_MONOTONIC, &netcam->interruptcurrenttime);
         if ((netcam->interruptcurrenttime.tv_sec - netcam->interruptstarttime.tv_sec ) > netcam->interruptduration){
             MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Camera reading (%s) timed out")
-                , netcam->cameratype, netcam->camera_name);
+                ,_("%s:Camera reading (%s) timed out")
+                , netcam->cameratype.c_str(), netcam->camera_name.c_str());
             netcam->interrupted = true;
             return true;
         } else{
@@ -1315,8 +1196,8 @@ static int netcam_interrupt(void *ctx)
         clock_gettime(CLOCK_MONOTONIC, &netcam->interruptcurrenttime);
         if ((netcam->interruptcurrenttime.tv_sec - netcam->interruptstarttime.tv_sec ) > netcam->interruptduration){
             MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Camera (%s) timed out")
-                , netcam->cameratype, netcam->camera_name);
+                ,_("%s:Camera (%s) timed out")
+                , netcam->cameratype.c_str(), netcam->camera_name.c_str());
             netcam->interrupted = true;
             return true;
         } else{
@@ -1330,17 +1211,16 @@ static int netcam_interrupt(void *ctx)
 
 static int netcam_open_sws(ctx_netcam *netcam)
 {
-
     if (netcam->finish) {
-        return -1;   /* This just speeds up the shutdown time */
+        return -1;
     }
 
     netcam->swsframe_in = myframe_alloc();
     if (netcam->swsframe_in == NULL) {
         if (netcam->status == NETCAM_NOTCONNECTED) {
             MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                , _("%s: Unable to allocate swsframe_in.")
-                , netcam->cameratype);
+                , _("%s:Unable to allocate swsframe_in.")
+                , netcam->cameratype.c_str());
         }
         netcam_close_context(netcam);
         return -1;
@@ -1350,8 +1230,8 @@ static int netcam_open_sws(ctx_netcam *netcam)
     if (netcam->swsframe_out == NULL) {
         if (netcam->status == NETCAM_NOTCONNECTED) {
             MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                , _("%s: Unable to allocate swsframe_out.")
-                , netcam->cameratype);
+                , _("%s:Unable to allocate swsframe_out.")
+                , netcam->cameratype.c_str());
         }
         netcam_close_context(netcam);
         return -1;
@@ -1365,8 +1245,8 @@ static int netcam_open_sws(ctx_netcam *netcam)
         const AVPixFmtDescriptor *descr;
         descr = av_pix_fmt_desc_get((AVPixelFormat)netcam->frame->format);
         MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-            , _("%s: Pixel format %s will be converted.")
-            , netcam->cameratype, descr->name);
+            , _("%s:Pixel format %s will be converted.")
+            , netcam->cameratype.c_str(), descr->name);
     }
 
     netcam->swsctx = sws_getContext(
@@ -1380,8 +1260,8 @@ static int netcam_open_sws(ctx_netcam *netcam)
     if (netcam->swsctx == NULL) {
         if (netcam->status == NETCAM_NOTCONNECTED) {
             MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                , _("%s: Unable to allocate scaling context.")
-                , netcam->cameratype);
+                , _("%s:Unable to allocate scaling context.")
+                , netcam->cameratype.c_str());
         }
         netcam_close_context(netcam);
         return -1;
@@ -1394,8 +1274,8 @@ static int netcam_open_sws(ctx_netcam *netcam)
     if (netcam->swsframe_size <= 0) {
         if (netcam->status == NETCAM_NOTCONNECTED) {
             MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                , _("%s: Error determining size of frame out")
-                , netcam->cameratype);
+                , _("%s:Error determining size of frame out")
+                , netcam->cameratype.c_str());
         }
         netcam_close_context(netcam);
         return -1;
@@ -1406,18 +1286,16 @@ static int netcam_open_sws(ctx_netcam *netcam)
     netcam_check_buffsize(netcam->img_latest, netcam->swsframe_size);
 
     return 0;
-
 }
 
 static int netcam_resize(ctx_netcam *netcam)
 {
-
     int      retcd;
     char     errstr[128];
     uint8_t *buffer_out;
 
     if (netcam->finish) {
-        return -1;   /* This just speeds up the shutdown time */
+        return -1;
     }
 
     if (netcam->swsctx == NULL) {
@@ -1436,8 +1314,8 @@ static int netcam_resize(ctx_netcam *netcam)
         if (netcam->status == NETCAM_NOTCONNECTED) {
             av_strerror(retcd, errstr, sizeof(errstr));
             MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Error allocating picture in: %s")
-                , netcam->cameratype, errstr);
+                ,_("%s:Error allocating picture in:%s")
+                , netcam->cameratype.c_str(), errstr);
         }
         netcam_close_context(netcam);
         return -1;
@@ -1455,8 +1333,8 @@ static int netcam_resize(ctx_netcam *netcam)
         if (netcam->status == NETCAM_NOTCONNECTED) {
             av_strerror(retcd, errstr, sizeof(errstr));
             MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Error allocating picture out: %s")
-                , netcam->cameratype, errstr);
+                ,_("%s:Error allocating picture out:%s")
+                , netcam->cameratype.c_str(), errstr);
         }
         netcam_close_context(netcam);
         return -1;
@@ -1474,8 +1352,8 @@ static int netcam_resize(ctx_netcam *netcam)
         if (netcam->status == NETCAM_NOTCONNECTED) {
             av_strerror(retcd, errstr, sizeof(errstr));
             MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Error resizing/reformatting: %s")
-                , netcam->cameratype, errstr);
+                ,_("%s:Error resizing/reformatting:%s")
+                , netcam->cameratype.c_str(), errstr);
         }
         netcam_close_context(netcam);
         return -1;
@@ -1492,8 +1370,8 @@ static int netcam_resize(ctx_netcam *netcam)
         if (netcam->status == NETCAM_NOTCONNECTED) {
             av_strerror(retcd, errstr, sizeof(errstr));
             MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Error putting frame into output buffer: %s")
-                , netcam->cameratype, errstr);
+                ,_("%s:Error putting frame into output buffer:%s")
+                , netcam->cameratype.c_str(), errstr);
         }
         netcam_close_context(netcam);
         return -1;
@@ -1503,19 +1381,17 @@ static int netcam_resize(ctx_netcam *netcam)
     av_free(buffer_out);
 
     return 0;
-
 }
 
 static int netcam_read_image(ctx_netcam *netcam)
 {
-
     int  size_decoded, retcd, errcnt, nodata;
     bool haveimage;
     char errstr[128];
     netcam_buff *xchg;
 
     if (netcam->finish) {
-        return -1;   /* This just speeds up the shutdown time */
+        return -1;
     }
 
     netcam->packet_recv = mypacket_alloc(netcam->packet_recv);
@@ -1539,13 +1415,13 @@ static int netcam_read_image(ctx_netcam *netcam)
         if ((netcam->interrupted) || (errcnt > 1)) {
             if (netcam->interrupted) {
                 MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                    ,_("%s: Interrupted")
-                    ,netcam->cameratype);
+                    ,_("%s:Interrupted")
+                    ,netcam->cameratype.c_str());
             } else {
                 av_strerror(retcd, errstr, sizeof(errstr));
                 MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                    ,_("%s: av_read_frame: %s" )
-                    ,netcam->cameratype,errstr);
+                    ,_("%s:av_read_frame:%s" )
+                    ,netcam->cameratype.c_str(),errstr);
             }
             netcam_free_pkt(netcam);
             netcam_close_context(netcam);
@@ -1632,8 +1508,8 @@ static int netcam_read_image(ctx_netcam *netcam)
             netcam->capture_rate = netcam->src_fps + 1;
             if (netcam->pts_adj == false) {
                 MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                    ,_("%s: capture_rate not specified in netcam_params. Using %d")
-                    ,netcam->cameratype,netcam->capture_rate);
+                    ,_("%s:capture_rate not specified in netcam_params. Using %d")
+                    ,netcam->cameratype.c_str(),netcam->capture_rate);
             }
         }
     } else {
@@ -1641,8 +1517,11 @@ static int netcam_read_image(ctx_netcam *netcam)
             netcam->capture_rate = netcam->conf->framerate;
             if (netcam->pts_adj == false) {
                MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                    ,_("%s: capture_rate not specified in netcam_params. Using framerate %d")
-                    ,netcam->cameratype, netcam->capture_rate);
+                    ,_("%s:capture_rate not specified.")
+                    ,netcam->cameratype.c_str());
+               MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
+                    ,_("%s:Using framerate %d")
+                    ,netcam->cameratype.c_str(), netcam->capture_rate);
             }
         }
     }
@@ -1652,7 +1531,6 @@ static int netcam_read_image(ctx_netcam *netcam)
 
 static int netcam_ntc(ctx_netcam *netcam)
 {
-
     if ((netcam->finish) || (!netcam->first_image)) {
         return 0;
     }
@@ -1660,6 +1538,11 @@ static int netcam_ntc(ctx_netcam *netcam)
     /* High Res pass through does not decode images into frames*/
     if (netcam->high_resolution && netcam->passthrough) {
         return 0;
+    }
+
+    if ((netcam->imgsize.width == 0) || (netcam->imgsize.height == 0) ||
+        (netcam->frame->width == 0) || (netcam->frame->height == 0)){
+            return 0;
     }
 
     if ((netcam->imgsize.width  != netcam->frame->width) ||
@@ -1677,34 +1560,27 @@ static int netcam_ntc(ctx_netcam *netcam)
     }
 
     return 0;
-
 }
 
 static void netcam_set_options(ctx_netcam *netcam)
 {
+    std::string tmp;
+    p_lst   *lst = &netcam->params->params_array;
+    p_it    it;
 
-    int indx;
-    char *tmpval;
-
-    /* The log messages are a bit short in this function intentionally.
-     * The function name is printed in each message so that is being
-     * considered as part of the message.
-     */
-
-    tmpval = (char*)mymalloc(PATH_MAX);
-
-    if (mystreq(netcam->service, "rtsp") ||
-        mystreq(netcam->service, "rtsps") ||
-        mystreq(netcam->service, "rtmp")) {
-        MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO,_("%s: Setting rtsp/rtmp")
-            ,netcam->cameratype);
+    if ((netcam->service == "rtsp") ||
+        (netcam->service == "rtsps") ||
+        (netcam->service == "rtmp")) {
+        MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO,_("%s:Setting rtsp/rtmp")
+            ,netcam->cameratype.c_str());
         util_parms_add_default(netcam->params,"rtsp_transport","tcp");
         //util_parms_add_default(netcam->params,"allowed_media_types", "video");
 
-    } else if (mystreq(netcam->service, "http") ||
-            mystreq(netcam->service, "https")) {
+    } else if ((netcam->service == "http") ||
+               (netcam->service == "https")) {
         MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-            ,_("%s: Setting input_format mjpeg"),netcam->cameratype);
+            ,_("%s:Setting input_format mjpeg")
+            ,netcam->cameratype.c_str());
         netcam->format_context->iformat = av_find_input_format("mjpeg");
         util_parms_add_default(netcam->params,"reconnect_on_network_error","1");
         util_parms_add_default(netcam->params,"reconnect_at_eof","1");
@@ -1712,144 +1588,127 @@ static void netcam_set_options(ctx_netcam *netcam)
         util_parms_add_default(netcam->params,"multiple_requests","1");
         util_parms_add_default(netcam->params,"reconnect_streamed","1");
 
-    } else if (mystreq(netcam->service, "v4l2")) {
+    } else if (netcam->service == "v4l2") {
         MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-            ,_("%s: Setting input_format video4linux2"),netcam->cameratype);
+            ,_("%s:Setting input_format video4linux2")
+            ,netcam->cameratype.c_str());
         netcam->format_context->iformat = av_find_input_format("video4linux2");
 
-        sprintf(tmpval,"%d",netcam->conf->framerate);
-        util_parms_add_default(netcam->params,"framerate", tmpval);
+        tmp = std::to_string(netcam->conf->framerate);
+        util_parms_add_default(netcam->params,"framerate", tmp);
 
-        sprintf(tmpval,"%dx%d",netcam->conf->width, netcam->conf->height);
-        util_parms_add_default(netcam->params,"video_size", tmpval);
+        tmp = std::to_string(netcam->conf->width) + "x" +
+            std::to_string(netcam->conf->height);
+        util_parms_add_default(netcam->params,"video_size", tmp);
 
-        /* Allow a bit more time for the v4l2 device to start up */
-        //netcam->motapp-> ->watchdog = 60;
         netcam->interruptduration = 55;
 
-    } else if (mystreq(netcam->service, "file")) {
+    } else if (netcam->service == "file") {
         MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-            ,_("%s: Setting up movie file"),netcam->cameratype);
+            ,_("%s:Setting up movie file")
+            ,netcam->cameratype.c_str());
 
     } else {
-        MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO,_("%s: Setting up %s")
-            ,netcam->cameratype, netcam->service);
+        MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO,_("%s:Setting up %s")
+            , netcam->cameratype.c_str()
+            , netcam->service.c_str());
     }
 
-    free(tmpval);
-
-    /* Write the options to the context, while skipping the Motion ones */
-    for (indx = 0; indx < netcam->params->params_count; indx++) {
-        if (mystrne(netcam->params->params_array[indx].param_name,"decoder") &&
-            mystrne(netcam->params->params_array[indx].param_name,"capture_rate")) {
+    for (it = lst->begin(); it != lst->end(); it++) {
+        if ((it->param_name != "decoder") &&
+            (it->param_name != "capture_rate")) {
             av_dict_set(&netcam->opts
-                , netcam->params->params_array[indx].param_name
-                , netcam->params->params_array[indx].param_value
-                , 0);
+                , it->param_name.c_str(), it->param_value.c_str(), 0);
             if (netcam->status == NETCAM_NOTCONNECTED) {
-                MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO,_("%s: option: %s = %s")
-                    ,netcam->cameratype
-                    ,netcam->params->params_array[indx].param_name
-                    ,netcam->params->params_array[indx].param_value
-                );
+                MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO,_("%s:%s = %s")
+                    ,netcam->cameratype.c_str()
+                    ,it->param_name.c_str(),it->param_value.c_str());
             }
         }
     }
-
 }
 
 static void netcam_set_path (ctx_dev *cam, ctx_netcam *netcam )
 {
-
-    char   userpass[PATH_MAX];
     ctx_url url;
-    int retcd;
 
-    netcam->path = NULL;
-
-    memset(&url, 0, sizeof(url));
-    memset(userpass,0,PATH_MAX);
+    netcam->path = "";
 
     if (netcam->high_resolution) {
-        netcam_url_parse(&url, cam->conf->netcam_high_url.c_str());
+        netcam_url_parse(&url, cam->conf->netcam_high_url);
     } else {
-        netcam_url_parse(&url, cam->conf->netcam_url.c_str());
+        netcam_url_parse(&url, cam->conf->netcam_url);
     }
 
     if (cam->conf->netcam_userpass != "") {
-        cam->conf->netcam_userpass.copy(userpass, PATH_MAX);
-    } else if (url.userpass != NULL) {
-        retcd = snprintf(userpass,PATH_MAX,"%s",url.userpass);
-        if ((retcd <0) || (retcd>=PATH_MAX)) {
-            MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO,_("Error getting userpass"));
-        }
+        url.userpass = cam->conf->netcam_userpass;
     }
 
-    if (mystreq(url.service, "v4l2")) {
-        netcam->path =(char*) mymalloc(strlen(url.path) + 1);
-        sprintf(netcam->path, "%s",url.path);
+    if  (url.service == "v4l2") {
+        netcam->path = url.path;
         MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
             ,_("Setting up v4l2"));
-    } else if (mystreq(url.service, "file")) {
-        netcam->path =(char*) mymalloc(strlen(url.path) + 1);
-        sprintf(netcam->path, "%s",url.path);
+    } else if (url.service == "file") {
+        netcam->path = url.path;
         MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
             ,_("Setting up file"));
     } else {
         MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-            ,_("Setting up %s "),url.service);
-        if (strlen(userpass) > 0) {
-            netcam->path =(char*) mymalloc(strlen(url.service) + 3 + strlen(userpass)
-                  + 1 + strlen(url.host) + 6 + strlen(url.path) + 2 );
-            sprintf((char *)netcam->path, "%s://%s@%s:%d%s",
-                    url.service, userpass, url.host, url.port, url.path);
+            ,_("Setting up %s "),url.service.c_str());
+        if (url.userpass.length() > 0) {
+            netcam->path = url.service + "://" +
+                url.userpass + "@" + url.host +":"+
+                std::to_string(url.port) + url.path;
         } else {
-            netcam->path =(char*) mymalloc(strlen(url.service) + 3 + strlen(url.host)
-                  + 6 + strlen(url.path) + 2);
-            sprintf((char *)netcam->path, "%s://%s:%d%s", url.service,
-                url.host, url.port, url.path);
+            netcam->path = url.service + "://" +
+                url.host + ":" + std::to_string(url.port) + url.path;
         }
     }
 
-    sprintf(netcam->service, "%s",url.service);
-
-    netcam_url_free(&url);
-
+    netcam->service = url.service;
 }
 
 static void netcam_set_parms (ctx_dev *cam, ctx_netcam *netcam )
 {
-    /* Set the parameters to be used with our camera */
-    int indx, val_len;
+    p_it    it;
 
+    netcam->finish = false;
     netcam->motapp = cam->motapp;
     netcam->conf = cam->conf;
+    netcam->params = new ctx_params;
+
+    pthread_mutex_init(&netcam->mutex, NULL);
+    pthread_mutex_init(&netcam->mutex_pktarray, NULL);
+    pthread_mutex_init(&netcam->mutex_transfer, NULL);
 
     pthread_mutex_lock(&netcam->motapp->global_lock);
         netcam->threadnbr = ++netcam->motapp->threads_running;
     pthread_mutex_unlock(&netcam->motapp->global_lock);
 
+    netcam_null_context(netcam);
+
     if (netcam->high_resolution) {
         netcam->imgsize.width = 0;
         netcam->imgsize.height = 0;
-        snprintf(netcam->cameratype, 29, "%s",_("High"));
-        netcam->params = (ctx_params*)mymalloc(sizeof(ctx_params));
+        netcam->cameratype = _("High");
         netcam->params->update_params = true;
-        util_parms_parse(netcam->params, cam->conf->netcam_high_params);
+        util_parms_parse(netcam->params
+            ,"netcam_high_params", cam->conf->netcam_high_params);
     } else {
         netcam->imgsize.width = cam->conf->width;
         netcam->imgsize.height = cam->conf->height;
-        snprintf(netcam->cameratype, 29, "%s",_("Norm"));
-        netcam->params = (ctx_params*)mymalloc(sizeof(ctx_params));
+        netcam->cameratype = _("Norm");
         netcam->params->update_params = true;
-        util_parms_parse(netcam->params, cam->conf->netcam_params);
+        util_parms_parse(netcam->params
+            ,"netcam_params", cam->conf->netcam_params);
     }
+    netcam->camera_name = cam->conf->device_name;
 
     MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-        ,_("%s: Setting up camera."),netcam->cameratype);
+        , _("%s:Setting up camera(%s).")
+        , netcam->cameratype.c_str(), netcam->camera_name.c_str());
 
     netcam->status = NETCAM_NOTCONNECTED;
-    cam->conf->device_name.copy(netcam->camera_name,PATH_MAX);
     mycheck_passthrough(cam);
     util_parms_add_default(netcam->params,"decoder","NULL");
     netcam->img_recv =(netcam_buff_ptr) mymalloc(sizeof(netcam_buff));
@@ -1869,19 +1728,26 @@ static void netcam_set_parms (ctx_dev *cam, ctx_netcam *netcam )
     netcam->video_stream_index = -1;
     netcam->audio_stream_index = -1;
     netcam->last_stream_index = -1;
+    netcam->strm = NULL;
+    netcam->opts = NULL;
+    netcam->decoder = NULL;
+    netcam->idnbr = 0;
+    netcam->swsframe_size = 0;
+    netcam->hw_type = AV_HWDEVICE_TYPE_NONE;
+    netcam->hw_pix_fmt = AV_PIX_FMT_NONE;
+    netcam->connection_pts = 0;
+    netcam->last_pts = 0;
 
-    for (indx = 0; indx < netcam->params->params_count; indx++) {
-        if (mystreq(netcam->params->params_array[indx].param_name,"decoder")) {
-            val_len = (int)strlen(netcam->params->params_array[indx].param_value) + 1;
-            netcam->decoder_nm = (char*)mymalloc(val_len);
-            snprintf(netcam->decoder_nm, val_len
-                , "%s",netcam->params->params_array[indx].param_value);
+    for (it = netcam->params->params_array.begin();
+        it != netcam->params->params_array.end(); it++) {
+        if (it->param_name == "decoder") {
+            netcam->decoder_nm = it->param_value;
         }
-        if (mystreq(netcam->params->params_array[indx].param_name,"capture_rate")) {
-            if (mystreq(netcam->params->params_array[indx].param_value,"pts")) {
+        if (it->param_name == "capture_rate") {
+            if (it->param_value == "pts") {
                 netcam->pts_adj = true;
             } else {
-                netcam->capture_rate = atoi(netcam->params->params_array[indx].param_value);
+                netcam->capture_rate = mtoi(it->param_value);
             }
         }
     }
@@ -1894,24 +1760,22 @@ static void netcam_set_parms (ctx_dev *cam, ctx_netcam *netcam )
         netcam->passthrough = mycheck_passthrough(cam);
     }
 
-    snprintf(netcam->threadname, 15, "%s",_("Unknown"));
+    netcam->threadname = _("Unknown");
 
+    clock_gettime(CLOCK_MONOTONIC, &netcam->frame_curr_tm);
+    clock_gettime(CLOCK_MONOTONIC, &netcam->frame_prev_tm);
+    clock_gettime(CLOCK_MONOTONIC, &netcam->connection_tm);
     clock_gettime(CLOCK_MONOTONIC, &netcam->interruptstarttime);
     clock_gettime(CLOCK_MONOTONIC, &netcam->interruptcurrenttime);
 
     netcam->interruptduration = 5;
     netcam->interrupted = false;
 
-    clock_gettime(CLOCK_MONOTONIC, &netcam->frame_curr_tm);
-    clock_gettime(CLOCK_MONOTONIC, &netcam->frame_prev_tm);
-
     netcam_set_path(cam, netcam);
-
 }
 
 static void netcam_set_dimensions (ctx_dev *cam)
 {
-
     cam->imgs.width = 0;
     cam->imgs.height = 0;
     cam->imgs.size_norm = 0;
@@ -1943,9 +1807,9 @@ static void netcam_set_dimensions (ctx_dev *cam)
     cam->imgs.height = cam->conf->height;
     cam->imgs.size_norm = (cam->conf->width * cam->conf->height * 3) / 2;
     cam->imgs.motionsize = cam->conf->width * cam->conf->height;
-
 }
 
+/* Make a static copy of the stream information for use in passthrough processing */
 static int netcam_copy_stream(ctx_netcam *netcam)
 {
     /* Make a static copy of the stream information for use in passthrough processing */
@@ -1966,8 +1830,8 @@ static int netcam_copy_stream(ctx_netcam *netcam)
                     retcd = avcodec_parameters_copy(transfer_stream->codecpar, stream_in->codecpar);
                     if (retcd < 0) {
                         MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                            ,_("%s: Unable to copy codec parameters")
-                            , netcam->cameratype);
+                            ,_("%s:Unable to copy codec parameters")
+                            , netcam->cameratype.c_str());
                         pthread_mutex_unlock(&netcam->mutex_transfer);
                         return -1;
                     }
@@ -1986,12 +1850,10 @@ static int netcam_copy_stream(ctx_netcam *netcam)
         }
         return -1;
     #endif
-
 }
 
 static int netcam_open_context(ctx_netcam *netcam)
 {
-
     int  retcd;
     char errstr[128];
 
@@ -1999,9 +1861,9 @@ static int netcam_open_context(ctx_netcam *netcam)
         return -1;
     }
 
-    if (netcam->path == NULL) {
+    if (netcam->path == "") {
         if (netcam->status == NETCAM_NOTCONNECTED) {
-            MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO, _("Null path passed to connect"));
+            MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO, _("No path passed to connect"));
         }
         return -1;
     }
@@ -2018,13 +1880,15 @@ static int netcam_open_context(ctx_netcam *netcam)
 
     netcam_set_options(netcam);
 
-    retcd = avformat_open_input(&netcam->format_context, netcam->path, NULL, &netcam->opts);
+    retcd = avformat_open_input(&netcam->format_context
+        , netcam->path.c_str(), NULL, &netcam->opts);
     if ((retcd < 0) || (netcam->interrupted) || (netcam->finish) ) {
         if (netcam->status == NETCAM_NOTCONNECTED) {
             av_strerror(retcd, errstr, sizeof(errstr));
             MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Unable to open camera(%s): %s")
-                , netcam->cameratype, netcam->camera_name, errstr);
+                ,_("%s:Unable to open camera(%s):%s")
+                , netcam->cameratype.c_str()
+                , netcam->camera_name.c_str(), errstr);
         }
         av_dict_free(&netcam->opts);
         netcam_close_context(netcam);
@@ -2032,7 +1896,8 @@ static int netcam_open_context(ctx_netcam *netcam)
     }
     av_dict_free(&netcam->opts);
     MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-        ,_("%s: Opened camera(%s)"), netcam->cameratype, netcam->camera_name);
+        ,_("%s:Opened camera(%s)"), netcam->cameratype.c_str()
+        , netcam->camera_name.c_str());
 
 
     /* fill out stream information */
@@ -2041,8 +1906,8 @@ static int netcam_open_context(ctx_netcam *netcam)
         if (netcam->status == NETCAM_NOTCONNECTED) {
             av_strerror(retcd, errstr, sizeof(errstr));
             MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Unable to find stream info: %s")
-                ,netcam->cameratype, errstr);
+                ,_("%s:Unable to find stream info:%s")
+                ,netcam->cameratype.c_str(), errstr);
         }
         netcam_close_context(netcam);
         return -1;
@@ -2053,20 +1918,20 @@ static int netcam_open_context(ctx_netcam *netcam)
      * desired name */
 
     mythreadname_get(netcam->threadname);
-    mythreadname_set("av",netcam->threadnbr,netcam->camera_name);
+    mythreadname_set("av", netcam->threadnbr, netcam->camera_name.c_str());
         retcd = netcam_open_codec(netcam);
-    mythreadname_set(NULL, 0, netcam->threadname);
+    mythreadname_set(NULL, 0, netcam->threadname.c_str());
     if ((retcd < 0) || (netcam->interrupted) || (netcam->finish) ) {
         if (netcam->status == NETCAM_NOTCONNECTED) {
             av_strerror(retcd, errstr, sizeof(errstr));
             MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Unable to open codec context: %s")
-                ,netcam->cameratype, errstr);
+                ,_("%s:Unable to open codec context:%s")
+                ,netcam->cameratype.c_str(), errstr);
         } else {
             av_strerror(retcd, errstr, sizeof(errstr));
             MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Connected and unable to open codec context: %s")
-                ,netcam->cameratype, errstr);
+                ,_("%s:Connected and unable to open codec context:%s")
+                ,netcam->cameratype.c_str(), errstr);
         }
         netcam_close_context(netcam);
         return -1;
@@ -2075,7 +1940,8 @@ static int netcam_open_context(ctx_netcam *netcam)
     if (netcam->codec_context->width <= 0 ||
         netcam->codec_context->height <= 0) {
         MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-            ,_("%s: Camera image size is invalid"),netcam->cameratype);
+            ,_("%s:Camera image size is invalid")
+            ,netcam->cameratype.c_str());
         netcam_close_context(netcam);
         return -1;
     }
@@ -2089,7 +1955,8 @@ static int netcam_open_context(ctx_netcam *netcam)
     if (netcam->frame == NULL) {
         if (netcam->status == NETCAM_NOTCONNECTED) {
             MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Unable to allocate frame."),netcam->cameratype);
+                ,_("%s:Unable to allocate frame.")
+                ,netcam->cameratype.c_str());
         }
         netcam_close_context(netcam);
         return -1;
@@ -2100,8 +1967,8 @@ static int netcam_open_context(ctx_netcam *netcam)
         if ((retcd < 0) || (netcam->interrupted)) {
             if (netcam->status == NETCAM_NOTCONNECTED) {
                 MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                    ,_("%s: Failed to copy stream for pass-through.")
-                    ,netcam->cameratype);
+                    ,_("%s:Failed to copy stream for pass-through.")
+                    ,netcam->cameratype.c_str());
             }
             netcam->passthrough = false;
         }
@@ -2112,7 +1979,8 @@ static int netcam_open_context(ctx_netcam *netcam)
     if ((retcd < 0) || (netcam->interrupted)) {
         if (netcam->status == NETCAM_NOTCONNECTED) {
             MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Failed to read first image"),netcam->cameratype);
+                ,_("%s:Failed to read first image")
+                ,netcam->cameratype.c_str());
         }
         netcam_close_context(netcam);
         return -1;
@@ -2121,12 +1989,10 @@ static int netcam_open_context(ctx_netcam *netcam)
     netcam->connection_pts = AV_NOPTS_VALUE;
 
     return 0;
-
 }
 
 static int netcam_connect(ctx_netcam *netcam)
 {
-
     if (netcam_open_context(netcam) < 0) {
         return -1;
     }
@@ -2149,30 +2015,30 @@ static int netcam_connect(ctx_netcam *netcam)
         netcam->status = NETCAM_CONNECTED;
 
         MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
-            ,_("%s: Camera (%s) connected")
-            , netcam->cameratype,netcam->camera_name);
+            ,_("%s:Camera (%s) connected")
+            , netcam->cameratype.c_str(),netcam->camera_name.c_str());
 
         MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
-            , _("%s: Netcam capture FPS is %d.")
-            , netcam->cameratype, netcam->capture_rate);
+            , _("%s:Netcam capture FPS is %d.")
+            , netcam->cameratype.c_str(), netcam->capture_rate);
 
         if (netcam->src_fps > 0) {
             MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
-                , _("%s: Camera source is %d FPS")
-                , netcam->cameratype, netcam->src_fps);
+                , _("%s:Camera source is %d FPS")
+                , netcam->cameratype.c_str(), netcam->src_fps);
         } else {
             MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
-                , _("%s: Unable to determine the camera source FPS.")
-                , netcam->cameratype);
+                , _("%s:Unable to determine the camera source FPS.")
+                , netcam->cameratype.c_str());
         }
 
         if (netcam->capture_rate < netcam->src_fps) {
             MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
-                , _("%s: Capture FPS less than camera FPS. Decoding errors will occur.")
-                , netcam->cameratype);
+                , _("%s:Capture FPS less than camera FPS. Decoding errors will occur.")
+                , netcam->cameratype.c_str());
             MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
-                , _("%s: Capture FPS should be greater than camera FPS.")
-                , netcam->cameratype);
+                , _("%s:Capture FPS should be greater than camera FPS.")
+                , netcam->cameratype.c_str());
         }
 
         if (netcam->audio_stream_index != -1) {
@@ -2182,11 +2048,9 @@ static int netcam_connect(ctx_netcam *netcam)
             * the handler is only triggered when the last packet is a video stream
             */
             MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: An audio stream was detected.  Capture_rate increased to compensate.")
-                ,netcam->cameratype);
+                ,_("%s:An audio stream was detected.  Capture_rate increased to compensate.")
+                ,netcam->cameratype.c_str());
         }
-
-
     }
 
     return 0;
@@ -2194,13 +2058,10 @@ static int netcam_connect(ctx_netcam *netcam)
 
 static void netcam_shutdown(ctx_netcam *netcam)
 {
-
     if (netcam) {
         netcam_close_context(netcam);
 
         netcam->status = NETCAM_NOTCONNECTED;
-
-        myfree(&netcam->path);
 
         if (netcam->img_latest != NULL) {
             free(netcam->img_latest->ptr);
@@ -2213,12 +2074,7 @@ static void netcam_shutdown(ctx_netcam *netcam)
             free(netcam->img_recv);
             netcam->img_recv   = NULL;
         }
-
-        myfree(&netcam->decoder_nm);
-        util_parms_free(netcam->params);
-        myfree(&netcam->params);
     }
-
 }
 
 static void netcam_handler_wait(ctx_netcam *netcam)
@@ -2262,18 +2118,17 @@ static void netcam_handler_wait(ctx_netcam *netcam)
     if ((usec_ltncy > 0) && (usec_ltncy < 1000000L)) {
         SLEEP(0, usec_ltncy * 1000);
     }
-
 }
 
 static void netcam_handler_reconnect(ctx_netcam *netcam)
 {
-
     int retcd, indx;
 
     if ((netcam->status == NETCAM_CONNECTED) ||
         (netcam->status == NETCAM_READINGIMAGE)) {
         MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
-            ,_("%s: Reconnecting with camera...."),netcam->cameratype);
+            ,_("%s:Reconnecting with camera....")
+            ,netcam->cameratype.c_str());
     }
     netcam->status = NETCAM_RECONNECTING;
 
@@ -2302,16 +2157,20 @@ static void netcam_handler_reconnect(ctx_netcam *netcam)
             netcam->reconnect_count++;
         } else if ((netcam->reconnect_count >= 100) && (netcam->reconnect_count <= 199)) {
             MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Camera did not reconnect."), netcam->cameratype);
+                ,_("%s:Camera did not reconnect.")
+                , netcam->cameratype.c_str());
             MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Checking for camera every 10 seconds."),netcam->cameratype);
+                ,_("%s:Checking for camera every 10 seconds.")
+                ,netcam->cameratype.c_str());
             netcam->reconnect_count++;
             SLEEP(10,0);
         } else if (netcam->reconnect_count >= 200) {
             MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Camera did not reconnect."), netcam->cameratype);
+                ,_("%s:Camera did not reconnect.")
+                , netcam->cameratype.c_str());
             MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Checking for camera every 10 minutes."),netcam->cameratype);
+                ,_("%s:Checking for camera every 10 minutes.")
+                ,netcam->cameratype.c_str());
             SLEEP(600,0);
         } else {
             netcam->reconnect_count++;
@@ -2320,23 +2179,21 @@ static void netcam_handler_reconnect(ctx_netcam *netcam)
     } else {
         netcam->reconnect_count = 0;
     }
-
 }
 
 static void *netcam_handler(void *arg)
 {
-
     ctx_netcam *netcam =(ctx_netcam *) arg;
 
     netcam->handler_finished = false;
 
-    mythreadname_set("nc",netcam->threadnbr, netcam->camera_name);
+    mythreadname_set("nc",netcam->threadnbr, netcam->camera_name.c_str());
 
     pthread_setspecific(tls_key_threadnr, (void *)((unsigned long)netcam->threadnbr));
 
     MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
-        ,_("%s: Camera handler thread [%d] started")
-        ,netcam->cameratype, netcam->threadnbr);
+        ,_("%s:Camera handler thread [%d] started")
+        ,netcam->cameratype.c_str(), netcam->threadnbr);
 
     while (!netcam->finish) {
         if (!netcam->format_context) {      /* We must have disconnected.  Try to reconnect */
@@ -2358,7 +2215,7 @@ static void *netcam_handler(void *arg)
     }
 
     MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-        ,_("%s: Loop finished."),netcam->cameratype);
+        ,_("%s:Loop finished."),netcam->cameratype.c_str());
     netcam_shutdown(netcam);
 
     /* Our thread is finished - decrement motion's thread count. */
@@ -2367,7 +2224,7 @@ static void *netcam_handler(void *arg)
     pthread_mutex_unlock(&netcam->motapp->global_lock);
 
     MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-        ,_("%s: Exiting"),netcam->cameratype);
+        ,_("%s:Exiting"),netcam->cameratype.c_str());
     netcam->handler_finished = true;
 
     pthread_exit(NULL);
@@ -2375,13 +2232,8 @@ static void *netcam_handler(void *arg)
 
 static int netcam_start_handler(ctx_netcam *netcam)
 {
-
     int retcd, wait_counter;
     pthread_attr_t handler_attribute;
-
-    pthread_mutex_init(&netcam->mutex, NULL);
-    pthread_mutex_init(&netcam->mutex_pktarray, NULL);
-    pthread_mutex_init(&netcam->mutex_transfer, NULL);
 
     pthread_attr_init(&handler_attribute);
     pthread_attr_setdetachstate(&handler_attribute, PTHREAD_CREATE_DETACHED);
@@ -2389,7 +2241,8 @@ static int netcam_start_handler(ctx_netcam *netcam)
     retcd = pthread_create(&netcam->thread_id, &handler_attribute, &netcam_handler, netcam);
     if (retcd < 0) {
         MOTPLS_LOG(ALR, TYPE_NETCAM, SHOW_ERRNO
-            ,_("%s: Error starting handler thread"),netcam->cameratype);
+            ,_("%s:Error starting handler thread")
+            ,netcam->cameratype.c_str());
         pthread_attr_destroy(&handler_attribute);
         return -1;
     }
@@ -2410,14 +2263,14 @@ static int netcam_start_handler(ctx_netcam *netcam)
 
         if (wait_counter > 0 ) {
             MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Waiting for first image from the handler."),netcam->cameratype);
+                ,_("%s:Waiting for first image from the handler.")
+                ,netcam->cameratype.c_str());
             SLEEP(0,5000000);
             wait_counter--;
         }
     }
 
     return 0;
-
 }
 
 void netcam_cleanup(ctx_dev *cam)
@@ -2442,7 +2295,8 @@ void netcam_cleanup(ctx_dev *cam)
 
         if (netcam) {
             MOTPLS_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                ,_("%s: Shutting down network camera."),netcam->cameratype);
+                ,_("%s:Shutting down network camera.")
+                ,netcam->cameratype.c_str());
             netcam->finish = true;
             netcam->interruptduration = 0;
             wait_counter = 0;
@@ -2452,7 +2306,8 @@ void netcam_cleanup(ctx_dev *cam)
             }
             if (!netcam->handler_finished) {
                 MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                    ,_("%s: No response from handler thread."),netcam->cameratype);
+                    ,_("%s:No response from handler thread.")
+                    ,netcam->cameratype.c_str());
                 /* Last resort.  Kill the thread.*/
                 pthread_cancel(netcam->thread_id);
                 pthread_kill(netcam->thread_id, SIGVTALRM);
@@ -2466,7 +2321,8 @@ void netcam_cleanup(ctx_dev *cam)
             pthread_mutex_destroy(&netcam->mutex_pktarray);
             pthread_mutex_destroy(&netcam->mutex_transfer);
 
-            myfree(&netcam);
+            delete netcam->params;
+            delete netcam;
 
             if (indx_cam == 1) {
                 MOTPLS_LOG(NTC, TYPE_NETCAM, NO_ERRNO
@@ -2481,7 +2337,6 @@ void netcam_cleanup(ctx_dev *cam)
     cam->netcam = NULL;
     cam->netcam_high = NULL;
     cam->device_status = STATUS_CLOSED;
-
 }
 
 void netcam_start(ctx_dev *cam)
@@ -2504,30 +2359,15 @@ void netcam_start(ctx_dev *cam)
     }
 
     while (indx_cam <= indx_max) {
-
         if (indx_cam == 1) {
-            cam->netcam = netcam_new_context();
-            if (cam->netcam == NULL) {
-                MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                    ,_("unable to create rtsp context"));
-                netcam_cleanup(cam);
-                return;
-            }
+            cam->netcam = new ctx_netcam;
             netcam = cam->netcam;
-            netcam->high_resolution = false;           /* Set flag for this being the normal resolution camera */
+            netcam->high_resolution = false;
         } else {
-            cam->netcam_high = netcam_new_context();
-            if (cam->netcam_high == NULL) {
-                MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO
-                    ,_("unable to create rtsp high context"));
-                netcam_cleanup(cam);
-                return;
-            }
+            cam->netcam_high = new ctx_netcam;
             netcam = cam->netcam_high;
-            netcam->high_resolution = true;            /* Set flag for this being the high resolution camera */
+            netcam->high_resolution = true;
         }
-
-        netcam_null_context(netcam);
         netcam_set_parms(cam, netcam);
         if (netcam_connect(netcam) != 0) {
             netcam_cleanup(cam);
@@ -2565,7 +2405,6 @@ void netcam_start(ctx_dev *cam)
     cam->device_status = STATUS_OPENED;
 
     return;
-
 }
 
 /* netcam_next (Called from the motion loop thread) */

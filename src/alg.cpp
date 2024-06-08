@@ -582,7 +582,7 @@ void alg_tune_smartmask(ctx_dev *cam)
     int sensitivity = cam->lastrate * (11 - cam->smartmask_speed);
 
     if (!cam->smartmask_speed ||
-        (cam->event_nr == cam->prev_event) ||
+        (cam->event_curr_nbr == cam->event_prev_nbr) ||
         (--cam->smartmask_count)) {
         return;
     }
@@ -748,7 +748,7 @@ static void alg_diff_smart(ctx_dev *cam)
         curdiff = (*ref - *new_img);
         if (smartmask_speed) {
             if (abs(curdiff) > noise) {
-                if (cam->event_nr != cam->prev_event) {
+                if (cam->event_curr_nbr != cam->event_prev_nbr) {
                     (*smartmask_buffer) += SMARTMASK_SENSITIVITY_INCR;
                 }
                 if (!*smartmask_final) {
@@ -811,7 +811,7 @@ static void alg_diff_masksmart(ctx_dev *cam)
 
         if (smartmask_speed) {
             if (abs(curdiff) > noise) {
-                if (cam->event_nr != cam->prev_event) {
+                if (cam->event_curr_nbr != cam->event_prev_nbr) {
                     (*smartmask_buffer) += SMARTMASK_SENSITIVITY_INCR;
                 }
                 if (!*smartmask_final) {

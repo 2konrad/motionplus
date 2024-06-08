@@ -39,32 +39,18 @@
 
 using namespace libcamera;
 
-bool cls_libcam::cam_parm_bool(char *parm)
-{
-    if (mystrceq(parm,"1") || mystrceq(parm,"yes") || mystrceq(parm,"on") || mystrceq(parm,"true") ) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-float cls_libcam::cam_parm_single(char *parm)
-{
-    return (float)atof(parm);
-}
-
 void cls_libcam::cam_log_orientation()
 {
     #if (LIBCAMVER >= 2000)
-        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "Libcamera Orientation Options:");
-        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  Rotate0");
-        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  Rotate0Mirror");
-        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  Rotate180");
-        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  Rotate180Mirror");
-        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  Rotate90");
-        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  Rotate90Mirror");
-        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  Rotate270");
-        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  Rotate270Mirror");
+        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "Libcamera Orientation Options:");
+        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  Rotate0");
+        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  Rotate0Mirror");
+        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  Rotate180");
+        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  Rotate180Mirror");
+        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  Rotate90");
+        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  Rotate90Mirror");
+        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  Rotate270");
+        motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  Rotate270Mirror");
     #else
         MOTPLS_LOG(NTC, TYPE_VIDEO, NO_ERRNO, "Orientation Not available");
     #endif
@@ -74,186 +60,183 @@ void cls_libcam::cam_log_orientation()
 void cls_libcam::cam_log_controls()
 {
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "Libcamera Controls:");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "Libcamera Controls:");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AeEnable(bool)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AeLocked(bool)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AeEnable(bool)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AeLocked(bool)");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AeMeteringMode(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    MeteringCentreWeighted = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    MeteringSpot = 1");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    MeteringMatrix = 2");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    MeteringCustom = 3");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AeMeteringMode(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    MeteringCentreWeighted = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    MeteringSpot = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    MeteringMatrix = 2");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    MeteringCustom = 3");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AeConstraintMode(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    ConstraintNormal = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    ConstraintHighlight = 1");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    ConstraintShadows = 2");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    ConstraintCustom = 3");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AeConstraintMode(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    ConstraintNormal = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    ConstraintHighlight = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    ConstraintShadows = 2");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    ConstraintCustom = 3");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AeExposureMode(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    ExposureNormal = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    ExposureShort = 1");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    ExposureLong = 2");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    ExposureCustom = 3");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AeExposureMode(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    ExposureNormal = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    ExposureShort = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    ExposureLong = 2");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    ExposureCustom = 3");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  ExposureValue(float)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  ExposureTime(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AnalogueGain(float)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  Brightness(float)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  Contrast(float)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  Lux(float)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AwbEnable(bool)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  ExposureValue(float)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  ExposureTime(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AnalogueGain(float)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  Brightness(float)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  Contrast(float)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  Lux(float)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AwbEnable(bool)");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AwbMode(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AwbAuto = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AwbIncandescent = 1");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AwbTungsten = 2");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AwbFluorescent = 3");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AwbIndoor = 4");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AwbDaylight = 5");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AwbCloudy = 6");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AwbCustom = 7");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AwbMode(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AwbAuto = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AwbIncandescent = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AwbTungsten = 2");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AwbFluorescent = 3");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AwbIndoor = 4");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AwbDaylight = 5");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AwbCloudy = 6");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AwbCustom = 7");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AwbLocked(bool)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  ColourGains(Pipe delimited)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "     Red | Blue");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  ColourTemperature(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  Saturation(float)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  SensorBlackLevels(Pipe delimited)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "     var1|var2|var3|var4");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  Sharpness(float)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  FocusFoM(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  ColourCorrectionMatrix(Pipe delimited)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "     var1|var2|...|var8|var9");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  ScalerCrop(Pipe delimited)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "     x | y | h | w");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  DigitalGain(float)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  FrameDuration(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  FrameDurationLimits(Pipe delimited)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "     min | max");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  SensorTemperature(float)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  SensorTimestamp(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AwbLocked(bool)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  ColourGains(Pipe delimited)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "     Red | Blue");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  ColourTemperature(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  Saturation(float)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  SensorBlackLevels(Pipe delimited)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "     var1|var2|var3|var4");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  Sharpness(float)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  FocusFoM(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  ColourCorrectionMatrix(Pipe delimited)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "     var1|var2|...|var8|var9");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  ScalerCrop(Pipe delimited)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "     x | y | h | w");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  DigitalGain(float)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  FrameDuration(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  FrameDurationLimits(Pipe delimited)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "     min | max");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  SensorTemperature(float)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  SensorTimestamp(int)");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AfMode(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfModeManual = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfModeAuto = 1");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfModeContinuous = 2");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AfMode(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfModeManual = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfModeAuto = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfModeContinuous = 2");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AfRange(0-2)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfRangeNormal = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfRangeMacro = 1");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfRangeFull = 2");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AfRange(0-2)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfRangeNormal = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfRangeMacro = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfRangeFull = 2");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AfSpeed(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfSpeedNormal = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfSpeedFast = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AfSpeed(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfSpeedNormal = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfSpeedFast = 1");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AfMetering(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfMeteringAuto = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfMeteringWindows = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AfMetering(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfMeteringAuto = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfMeteringWindows = 1");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AfWindows(Pipe delimited)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "     x | y | h | w");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AfWindows(Pipe delimited)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "     x | y | h | w");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AfTrigger(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfTriggerStart = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfTriggerCancel = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AfTrigger(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfTriggerStart = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfTriggerCancel = 1");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AfPause(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfPauseImmediate = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfPauseDeferred = 1");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfPauseResume = 2");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AfPause(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfPauseImmediate = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfPauseDeferred = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfPauseResume = 2");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  LensPosition(float)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  LensPosition(float)");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AfState(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfStateIdle = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfStateScanning = 1");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfStateFocused = 2");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfStateFailed = 3");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AfState(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfStateIdle = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfStateScanning = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfStateFocused = 2");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfStateFailed = 3");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AfPauseState(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfPauseStateRunning = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfPauseStatePausing = 1");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AfPauseStatePaused = 2");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AfPauseState(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfPauseStateRunning = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfPauseStatePausing = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AfPauseStatePaused = 2");
 
 }
 
 void cls_libcam:: cam_log_draft()
 {
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "Libcamera Controls Draft:");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "Libcamera Controls Draft:");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AePrecaptureTrigger(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AePrecaptureTriggerIdle = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AePrecaptureTriggerStart = 1");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AePrecaptureTriggerCancel = 2");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AePrecaptureTrigger(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AePrecaptureTriggerIdle = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AePrecaptureTriggerStart = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AePrecaptureTriggerCancel = 2");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  NoiseReductionMode(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    NoiseReductionModeOff = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    NoiseReductionModeFast = 1");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    NoiseReductionModeHighQuality = 2");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    NoiseReductionModeMinimal = 3");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    NoiseReductionModeZSL = 4");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  NoiseReductionMode(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    NoiseReductionModeOff = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    NoiseReductionModeFast = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    NoiseReductionModeHighQuality = 2");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    NoiseReductionModeMinimal = 3");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    NoiseReductionModeZSL = 4");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  ColorCorrectionAberrationMode(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    ColorCorrectionAberrationOff = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    ColorCorrectionAberrationFast = 1");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    ColorCorrectionAberrationHighQuality = 2");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  ColorCorrectionAberrationMode(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    ColorCorrectionAberrationOff = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    ColorCorrectionAberrationFast = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    ColorCorrectionAberrationHighQuality = 2");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AeState(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AeStateSearching = 1");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AeStateConverged = 2");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AeStateLocked = 3");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AeStateFlashRequired = 4");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AeStatePrecapture = 5");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AeState(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AeStateSearching = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AeStateConverged = 2");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AeStateLocked = 3");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AeStateFlashRequired = 4");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AeStatePrecapture = 5");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  AwbState(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AwbStateInactive = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AwbStateSearching = 1");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AwbConverged = 2");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    AwbLocked = 3");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AwbState(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AwbStateInactive = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AwbStateSearching = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AwbConverged = 2");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AwbLocked = 3");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  SensorRollingShutterSkew(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  SensorRollingShutterSkew(int)");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  LensShadingMapMode(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    LensShadingMapModeOff = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    LensShadingMapModeOn = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  LensShadingMapMode(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    LensShadingMapModeOff = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    LensShadingMapModeOn = 1");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  PipelineDepth(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  PipelineDepth(int)");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  MaxLatency(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  MaxLatency(int)");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "  TestPatternMode(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    TestPatternModeOff = 0");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    TestPatternModeSolidColor = 1");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    TestPatternModeColorBars = 2");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    TestPatternModeColorBarsFadeToGray = 3");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    TestPatternModePn9 = 4");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0, "    TestPatternModeCustom1 = 256");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  TestPatternMode(int)");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    TestPatternModeOff = 0");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    TestPatternModeSolidColor = 1");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    TestPatternModeColorBars = 2");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    TestPatternModeColorBarsFadeToGray = 3");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    TestPatternModePn9 = 4");
+    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    TestPatternModeCustom1 = 256");
 
 }
 
 void cls_libcam::cam_start_params(ctx_dev *ptr)
 {
-    int indx;
-
-    MOTPLS_LOG(NTC, TYPE_VIDEO, NO_ERRNO, "Starting.");
-
     camctx = ptr;
+    p_lst *lst;
+    p_it it;
 
-    camctx->libcam->params = (ctx_params*)mymalloc(sizeof(ctx_params));
+    camctx->libcam->params = new ctx_params;
     camctx->libcam->params->update_params = true;
-    util_parms_parse(camctx->libcam->params, camctx->conf->libcam_params);
+    util_parms_parse(camctx->libcam->params
+        ,"libcam_params", camctx->conf->libcam_params);
 
-    for (indx = 0; indx < camctx->libcam->params->params_count; indx++) {
+    lst = &camctx->libcam->params->params_array;
+
+    for (it = lst->begin(); it != lst->end(); it++) {
         MOTPLS_LOG(NTC, TYPE_VIDEO, NO_ERRNO, "%s : %s"
-            ,camctx->libcam->params->params_array[indx].param_name
-            ,camctx->libcam->params->params_array[indx].param_value
-            );
+            ,it->param_name.c_str(), it->param_value.c_str());
     }
-    MOTPLS_LOG(NTC, TYPE_VIDEO, NO_ERRNO, "Finished.");
-
 }
 
 int cls_libcam::cam_start_mgr()
@@ -265,7 +248,6 @@ int cls_libcam::cam_start_mgr()
     MOTPLS_LOG(NTC, TYPE_VIDEO, NO_ERRNO, "Starting.");
 
     cam_mgr = std::make_unique<CameraManager>();
-
     retcd = cam_mgr->start();
     if (retcd != 0) {
         MOTPLS_LOG(ERR, TYPE_VIDEO, NO_ERRNO
@@ -277,6 +259,11 @@ int cls_libcam::cam_start_mgr()
     MOTPLS_LOG(NTC, TYPE_VIDEO, NO_ERRNO, "cam_mgr started.");
 
     if (camctx->conf->libcam_device == "camera0"){
+        if (cam_mgr->cameras().size() == 0) {
+            MOTPLS_LOG(ERR, TYPE_VIDEO, NO_ERRNO
+                , "No camera devices found");
+            return -1;
+        };
         camid = cam_mgr->cameras()[0]->id();
     } else {
         MOTPLS_LOG(ERR, TYPE_VIDEO, NO_ERRNO
@@ -292,182 +279,182 @@ int cls_libcam::cam_start_mgr()
 
     return 0;
 }
-
-void cls_libcam::cam_config_control_item(char *pname, char *pvalue)
+/* Set named control to configuration value */
+void cls_libcam::cam_config_control_item(std::string pname, std::string pvalue)
 {
-    if (mystrceq(pname, "AeEnable")) {
-        controls.set(controls::AeEnable, cam_parm_bool(pvalue));
+    if (pname == "AeEnable") {
+        controls.set(controls::AeEnable, mtob(pvalue));
     }
-    if (mystrceq(pname, "AeLocked")) {
-        controls.set(controls::AeLocked, cam_parm_bool(pvalue));
+    if (pname == "AeLocked") {
+        controls.set(controls::AeLocked, mtob(pvalue));
     }
-    if (mystrceq(pname,"AeMeteringMode")) {
-       controls.set(controls::AeMeteringMode, atoi(pvalue));
+    if (pname == "AeMeteringMode") {
+       controls.set(controls::AeMeteringMode, mtoi(pvalue));
     }
-    if (mystrceq(pname,"AeConstraintMode")) {
-        controls.set(controls::AeConstraintMode, atoi(pvalue));
+    if (pname == "AeConstraintMode") {
+        controls.set(controls::AeConstraintMode, mtoi(pvalue));
     }
-    if (mystrceq(pname,"AeExposureMode")) {
-        controls.set(controls::AeExposureMode, atoi(pvalue));
+    if (pname == "AeExposureMode") {
+        controls.set(controls::AeExposureMode, mtoi(pvalue));
     }
-    if (mystrceq(pname,"ExposureValue")) {
-        controls.set(controls::ExposureValue, cam_parm_single(pvalue));
+    if (pname == "ExposureValue") {
+        controls.set(controls::ExposureValue, mtof(pvalue));
     }
-    if (mystrceq(pname,"ExposureTime")) {
-        controls.set(controls::ExposureTime, atoi(pvalue));
+    if (pname == "ExposureTime") {
+        controls.set(controls::ExposureTime, mtoi(pvalue));
     }
-    if (mystrceq(pname,"AnalogueGain")) {
-        controls.set(controls::AnalogueGain, cam_parm_single(pvalue));
+    if (pname == "AnalogueGain") {
+        controls.set(controls::AnalogueGain, mtof(pvalue));
     }
-    if (mystrceq(pname,"Brightness")) {
-        controls.set(controls::Brightness, cam_parm_single(pvalue));
+    if (pname == "Brightness") {
+        controls.set(controls::Brightness, mtof(pvalue));
     }
-    if (mystrceq(pname,"Contrast")) {
-        controls.set(controls::Contrast, cam_parm_single(pvalue));
+    if (pname == "Contrast") {
+        controls.set(controls::Contrast, mtof(pvalue));
     }
-    if (mystrceq(pname,"Lux")) {
-        controls.set(controls::Lux, cam_parm_single(pvalue));
+    if (pname == "Lux") {
+        controls.set(controls::Lux, mtof(pvalue));
     }
-    if (mystrceq(pname, "AwbEnable")) {
-        controls.set(controls::AwbEnable, cam_parm_bool(pvalue));
+    if (pname == "AwbEnable") {
+        controls.set(controls::AwbEnable, mtob(pvalue));
     }
-    if (mystrceq(pname,"AwbMode")) {
-        controls.set(controls::AwbMode, atoi(pvalue));
+    if (pname == "AwbMode") {
+        controls.set(controls::AwbMode, mtoi(pvalue));
     }
-    if (mystrceq(pname, "AwbLocked")) {
-        controls.set(controls::AwbLocked, cam_parm_bool(pvalue));
+    if (pname == "AwbLocked") {
+        controls.set(controls::AwbLocked, mtob(pvalue));
     }
-    if (mystrceq(pname,"ColourGains")) {
+    if (pname == "ColourGains") {
         float cg[2];
-        cg[0] = cam_parm_single(strtok(pvalue, "|"));
-        cg[1] = cam_parm_single(strtok(0, "|"));
+        cg[0] = mtof(mtok(pvalue,"|"));
+        cg[1] = mtof(mtok(pvalue,"|"));
         controls.set(controls::ColourGains, cg);
     }
-    if (mystrceq(pname,"ColourTemperature")) {
-        controls.set(controls::ColourTemperature, atoi(pvalue));
+    if (pname == "ColourTemperature") {
+        controls.set(controls::ColourTemperature, mtoi(pvalue));
     }
-    if (mystrceq(pname,"Saturation")) {
-        controls.set(controls::Saturation, cam_parm_single(pvalue));
+    if (pname == "Saturation") {
+        controls.set(controls::Saturation, mtof(pvalue));
     }
-    if (mystrceq(pname,"SensorBlackLevels")) {
+    if (pname == "SensorBlackLevels") {
         int32_t sbl[4];
-        sbl[0] = atoi(strtok(pvalue, "|"));
-        sbl[1] = atoi(strtok(0, "|"));
-        sbl[2] = atoi(strtok(0, "|"));
-        sbl[3] = atoi(strtok(0, "|"));
+        sbl[0] = mtoi(mtok(pvalue,"|"));
+        sbl[1] = mtoi(mtok(pvalue,"|"));
+        sbl[2] = mtoi(mtok(pvalue,"|"));
+        sbl[3] = mtoi(mtok(pvalue,"|"));
         controls.set(controls::SensorBlackLevels, sbl);
     }
-    if (mystrceq(pname,"Sharpness")) {
-        controls.set(controls::Sharpness, cam_parm_single(pvalue));
+    if (pname == "Sharpness") {
+        controls.set(controls::Sharpness, mtof(pvalue));
     }
-    if (mystrceq(pname,"FocusFoM")) {
-        controls.set(controls::FocusFoM, atoi(pvalue));
+    if (pname == "FocusFoM") {
+        controls.set(controls::FocusFoM, mtoi(pvalue));
     }
-    if (mystrceq(pname,"ColourCorrectionMatrix")) {
+    if (pname == "ColourCorrectionMatrix") {
         float ccm[9];
-        ccm[0] = cam_parm_single(strtok(pvalue, "|"));
-        ccm[1] = cam_parm_single(strtok(0, "|"));
-        ccm[2] = cam_parm_single(strtok(0, "|"));
-        ccm[3] = cam_parm_single(strtok(0, "|"));
-        ccm[4] = cam_parm_single(strtok(0, "|"));
-        ccm[5] = cam_parm_single(strtok(0, "|"));
-        ccm[6] = cam_parm_single(strtok(0, "|"));
-        ccm[7] = cam_parm_single(strtok(0, "|"));
-        ccm[8] = cam_parm_single(strtok(0, "|"));
+        ccm[0] = mtof(mtok(pvalue,"|"));
+        ccm[1] = mtof(mtok(pvalue,"|"));
+        ccm[2] = mtof(mtok(pvalue,"|"));
+        ccm[3] = mtof(mtok(pvalue,"|"));
+        ccm[4] = mtof(mtok(pvalue,"|"));
+        ccm[5] = mtof(mtok(pvalue,"|"));
+        ccm[6] = mtof(mtok(pvalue,"|"));
+        ccm[7] = mtof(mtok(pvalue,"|"));
+        ccm[8] = mtof(mtok(pvalue,"|"));
         controls.set(controls::ColourCorrectionMatrix, ccm);
     }
-    if (mystrceq(pname,"ScalerCrop")) {
+    if (pname == "ScalerCrop") {
         Rectangle crop;
-        crop.x = atoi(strtok(pvalue, "|"));
-        crop.y = atoi(strtok(0, "|"));
-        crop.width = atoi(strtok(0, "|"));
-        crop.height = atoi(strtok(0, "|"));
+        crop.x = mtoi(mtok(pvalue,"|"));
+        crop.y = mtoi(mtok(pvalue,"|"));
+        crop.width = mtoi(mtok(pvalue,"|"));
+        crop.height = mtoi(mtok(pvalue,"|"));
         controls.set(controls::ScalerCrop, crop);
     }
-    if (mystrceq(pname,"DigitalGain")) {
-        controls.set(controls::DigitalGain, cam_parm_single(pvalue));
+    if (pname == "DigitalGain") {
+        controls.set(controls::DigitalGain, mtof(pvalue));
     }
-    if (mystrceq(pname,"FrameDuration")) {
-        controls.set(controls::FrameDuration, atoi(pvalue));
+    if (pname == "FrameDuration") {
+        controls.set(controls::FrameDuration, mtoi(pvalue));
     }
-    if (mystrceq(pname,"FrameDurationLimits")) {
+    if (pname == "FrameDurationLimits") {
         int64_t fdl[2];
-        fdl[0] = atol(strtok(pvalue, "|"));
-        fdl[1] = atol(strtok(0, "|"));
+        fdl[0] = mtol(mtok(pvalue,"|"));
+        fdl[1] = mtol(mtok(pvalue,"|"));
         controls.set(controls::FrameDurationLimits, fdl);
     }
-    if (mystrceq(pname,"SensorTemperature")) {
-        controls.set(controls::SensorTemperature, cam_parm_single(pvalue));
+    if (pname == "SensorTemperature") {
+        controls.set(controls::SensorTemperature, mtof(pvalue));
     }
-    if (mystrceq(pname,"SensorTimestamp")) {
-        controls.set(controls::SensorTimestamp, atoi(pvalue));
+    if (pname == "SensorTimestamp") {
+        controls.set(controls::SensorTimestamp, mtoi(pvalue));
     }
-    if (mystrceq(pname,"AfMode")) {
-        controls.set(controls::AfMode, atoi(pvalue));
+    if (pname == "AfMode") {
+        controls.set(controls::AfMode, mtoi(pvalue));
     }
-    if (mystrceq(pname,"AfRange")) {
-        controls.set(controls::AfRange, atoi(pvalue));
+    if (pname == "AfRange") {
+        controls.set(controls::AfRange, mtoi(pvalue));
     }
-    if (mystrceq(pname,"AfSpeed")) {
-        controls.set(controls::AfSpeed, atoi(pvalue));
+    if (pname == "AfSpeed") {
+        controls.set(controls::AfSpeed, mtoi(pvalue));
     }
-    if (mystrceq(pname,"AfMetering")) {
-        controls.set(controls::AfMetering, atoi(pvalue));
+    if (pname == "AfMetering") {
+        controls.set(controls::AfMetering, mtoi(pvalue));
     }
-    if (mystrceq(pname,"AfWindows")) {
+    if (pname == "AfWindows") {
         Rectangle afwin[1];
-        afwin[0].x = atoi(strtok(pvalue, "|"));
-        afwin[0].y = atoi(strtok(0, "|"));
-        afwin[0].width = atoi(strtok(0, "|"));
-        afwin[0].height = atoi(strtok(0, "|"));
+        afwin[0].x = mtoi(mtok(pvalue,"|"));
+        afwin[0].y = mtoi(mtok(pvalue,"|"));
+        afwin[0].width = mtoi(mtok(pvalue,"|"));
+        afwin[0].height = mtoi(mtok(pvalue,"|"));
         controls.set(controls::AfWindows, afwin);
     }
-    if (mystrceq(pname,"AfTrigger")) {
-        controls.set(controls::AfTrigger, atoi(pvalue));
+    if (pname == "AfTrigger") {
+        controls.set(controls::AfTrigger, mtoi(pvalue));
     }
-    if (mystrceq(pname,"AfPause")) {
-        controls.set(controls::AfPause, atoi(pvalue));
+    if (pname == "AfPause") {
+        controls.set(controls::AfPause, mtoi(pvalue));
     }
-    if (mystrceq(pname,"LensPosition")) {
-        controls.set(controls::LensPosition, cam_parm_single(pvalue));
+    if (pname == "LensPosition") {
+        controls.set(controls::LensPosition, mtof(pvalue));
     }
-    if (mystrceq(pname,"AfState")) {
-        controls.set(controls::AfState, atoi(pvalue));
+    if (pname == "AfState") {
+        controls.set(controls::AfState, mtoi(pvalue));
     }
-    if (mystrceq(pname,"AfPauseState")) {
-        controls.set(controls::AfPauseState, atoi(pvalue));
+    if (pname == "AfPauseState") {
+        controls.set(controls::AfPauseState, mtoi(pvalue));
     }
 
     /* DRAFT*/
-    if (mystrceq(pname,"AePrecaptureTrigger")) {
-        controls.set(controls::draft::AePrecaptureTrigger, atoi(pvalue));
+    if (pname == "AePrecaptureTrigger") {
+        controls.set(controls::draft::AePrecaptureTrigger, mtoi(pvalue));
     }
-    if (mystrceq(pname,"NoiseReductionMode")) {
-        controls.set(controls::draft::NoiseReductionMode, atoi(pvalue));
+    if (pname == "NoiseReductionMode") {
+        controls.set(controls::draft::NoiseReductionMode, mtoi(pvalue));
     }
-    if (mystrceq(pname,"ColorCorrectionAberrationMode")) {
-        controls.set(controls::draft::ColorCorrectionAberrationMode, atoi(pvalue));
+    if (pname == "ColorCorrectionAberrationMode") {
+        controls.set(controls::draft::ColorCorrectionAberrationMode, mtoi(pvalue));
     }
-    if (mystrceq(pname,"AeState")) {
-        controls.set(controls::draft::AeState, atoi(pvalue));
+    if (pname == "AeState") {
+        controls.set(controls::draft::AeState, mtoi(pvalue));
     }
-    if (mystrceq(pname,"AwbState")) {
-        controls.set(controls::draft::AwbState, atoi(pvalue));
+    if (pname == "AwbState") {
+        controls.set(controls::draft::AwbState, mtoi(pvalue));
     }
-    if (mystrceq(pname,"SensorRollingShutterSkew")) {
-        controls.set(controls::draft::SensorRollingShutterSkew, atoi(pvalue));
+    if (pname == "SensorRollingShutterSkew") {
+        controls.set(controls::draft::SensorRollingShutterSkew, mtoi(pvalue));
     }
-    if (mystrceq(pname,"LensShadingMapMode")) {
-        controls.set(controls::draft::LensShadingMapMode, atoi(pvalue));
+    if (pname == "LensShadingMapMode") {
+        controls.set(controls::draft::LensShadingMapMode, mtoi(pvalue));
     }
-    if (mystrceq(pname,"PipelineDepth")) {
-        controls.set(controls::draft::PipelineDepth, atoi(pvalue));
+    if (pname == "PipelineDepth") {
+        controls.set(controls::draft::PipelineDepth, mtoi(pvalue));
     }
-    if (mystrceq(pname,"MaxLatency")) {
-        controls.set(controls::draft::MaxLatency, atoi(pvalue));
+    if (pname == "MaxLatency") {
+        controls.set(controls::draft::MaxLatency, mtoi(pvalue));
     }
-    if (mystrceq(pname,"TestPatternMode")) {
-        controls.set(controls::draft::TestPatternMode, atoi(pvalue));
+    if (pname == "TestPatternMode") {
+        controls.set(controls::draft::TestPatternMode, mtoi(pvalue));
     }
     if (mystrceq(pname,"HdrMode")) {
         controls.set(controls::HdrMode, atoi(pvalue));
@@ -476,12 +463,12 @@ void cls_libcam::cam_config_control_item(char *pname, char *pvalue)
 
 void cls_libcam:: cam_config_controls()
 {
-    int indx, retcd;
+    int retcd;
+    p_lst *lst = &camctx->libcam->params->params_array;
+    p_it it;
 
-    for (indx = 0; indx < camctx->libcam->params->params_count; indx++) {
-        cam_config_control_item(
-            camctx->libcam->params->params_array[indx].param_name
-            ,camctx->libcam->params->params_array[indx].param_value);
+    for (it = lst->begin(); it != lst->end(); it++) {
+        cam_config_control_item(it->param_name, it->param_value);
     }
 
     retcd = config->validate();
@@ -501,33 +488,33 @@ void cls_libcam:: cam_config_controls()
 void cls_libcam:: cam_config_orientation()
 {
     #if (LIBCAMVER >= 2000)
-        int indx, retcd;
-        ctx_params_item itm;
+        int retcd;
         std::string adjdesc;
+        p_lst *lst = &camctx->libcam->params->params_array;
+        p_it it;
 
-        for (indx = 0; indx < camctx->libcam->params->params_count; indx++) {
-            itm = camctx->libcam->params->params_array[indx];
-            if (mystreq(itm.param_name,"orientation")) {
-                if (mystrceq(itm.param_value,"Rotate0")) {
+        for (it = lst->begin(); it != lst->end(); it++) {
+            if (it->param_name == "orientation") {
+                if (it->param_value == "Rotate0") {
                     config->orientation = Orientation::Rotate0;
-                } else if (mystrceq(itm.param_value,"Rotate0Mirror")) {
+                } else if (it->param_value == "Rotate0Mirror") {
                     config->orientation = Orientation::Rotate0Mirror;
-                } else if (mystrceq(itm.param_value,"Rotate180")) {
+                } else if (it->param_value == "Rotate180") {
                     config->orientation = Orientation::Rotate180;
-                } else if (mystrceq(itm.param_value,"Rotate180Mirror")) {
+                } else if (it->param_value == "Rotate180Mirror") {
                     config->orientation = Orientation::Rotate180Mirror;
-                } else if (mystrceq(itm.param_value,"Rotate90")) {
+                } else if (it->param_value == "Rotate90") {
                     config->orientation = Orientation::Rotate90;
-                } else if (mystrceq(itm.param_value,"Rotate90Mirror")) {
+                } else if (it->param_value == "Rotate90Mirror") {
                     config->orientation = Orientation::Rotate90Mirror;
-                } else if (mystrceq(itm.param_value,"Rotate270")) {
+                } else if (it->param_value == "Rotate270") {
                     config->orientation = Orientation::Rotate270;
-                } else if (mystrceq(itm.param_value,"Rotate270Mirror")) {
+                } else if (it->param_value == "Rotate270Mirror") {
                     config->orientation = Orientation::Rotate270Mirror;
                 } else {
                     MOTPLS_LOG(ERR, TYPE_VIDEO, NO_ERRNO
                         , "Invalid Orientation option: %s."
-                        , itm.param_value);
+                        , it->param_value.c_str());
                 }
             }
         }
@@ -853,9 +840,7 @@ int cls_libcam::cam_start(ctx_dev *cam)
 
 void cls_libcam::cam_stop()
 {
-    util_parms_free(camctx->libcam->params);
-    myfree(&camctx->libcam->params);
-    camctx->libcam->params = NULL;
+    delete camctx->libcam->params;
 
     if (started_aqr) {
         camera->stop();
