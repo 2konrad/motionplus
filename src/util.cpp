@@ -903,7 +903,7 @@ void util_exec_command(ctx_dev *cam, const char *command, char *filename)
 {
 
     char stamp[PATH_MAX];
-    int pid;
+    //int pid;
 
     mystrftime(cam, stamp, sizeof(stamp), command, filename);
 

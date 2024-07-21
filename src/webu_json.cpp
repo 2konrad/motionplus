@@ -233,7 +233,6 @@ void webu_json_config(ctx_webui *webui)
 
     struct stat attr;
     stat("/home/pi/motionplus/src/motionplus", &attr);
-    std::tm tm = *std::localtime(&attr.st_mtime);
     std::stringstream ssTp;
     ssTp << std::put_time(std::localtime(&attr.st_mtime), "%B-%d");
 

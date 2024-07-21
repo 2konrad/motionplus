@@ -660,7 +660,7 @@ static void alg_diff_nomask(ctx_dev *cam)
 
     if (diffs > 0 ) {
         cam->current_image->diffs_ratio = (abs(diffs_net) * 100) / diffs;
-        cam->current_image->diffs_raw = sum_currdiff / diffs;
+        cam->current_image->diffs_raw = (int)(sum_currdiff / diffs);
     } else {
         cam->current_image->diffs_ratio = 100;
     }
@@ -715,7 +715,7 @@ static void alg_diff_mask(ctx_dev *cam)
 
     if (diffs > 0 ) {
         cam->current_image->diffs_ratio = (abs(diffs_net) * 100) / diffs;
-        cam->current_image->diffs_raw = sum_currdiff / diffs ;
+        cam->current_image->diffs_raw = (int)(sum_currdiff / diffs) ;
     } else {
         cam->current_image->diffs_ratio = 100;
         cam->current_image->diffs_raw = 0;
