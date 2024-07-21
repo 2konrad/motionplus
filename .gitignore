@@ -62,3 +62,5 @@ po/stamp-po
 debian/
 *.pgm
 buildplus.sh
+*~
+
