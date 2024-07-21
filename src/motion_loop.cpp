@@ -758,9 +758,9 @@ static void mlp_areadetect(ctx_dev *cam)
     // Easy area detect, if center of movement (location) ist in right side of picture
     if ((cam->current_image->location.x > 320) && 
         (cam->current_image->flags & IMAGE_TRIGGER)){
-        cam->areadetect_eventnbr = cam->event_nr;
+        cam->areadetect_eventnbr = cam->event_curr_nbr;
         MOTPLS_LOG( NTC, TYPE_ALL, NO_ERRNO
-                        ,_("Right side event triggered in Event  %d ."), cam->event_nr);
+                        ,_("Right side event triggered in Event  %d ."), cam->event_curr_nbr);
     }
 }
 

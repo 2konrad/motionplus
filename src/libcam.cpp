@@ -456,8 +456,8 @@ void cls_libcam::cam_config_control_item(std::string pname, std::string pvalue)
     if (pname == "TestPatternMode") {
         controls.set(controls::draft::TestPatternMode, mtoi(pvalue));
     }
-    if (mystrceq(pname,"HdrMode")) {
-        controls.set(controls::HdrMode, atoi(pvalue));
+    if (pname == "HdrMode") {
+        controls.set(controls::HdrMode, mtoi(pvalue));
     }
 }
 

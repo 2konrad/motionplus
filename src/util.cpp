@@ -336,7 +336,7 @@ static void mystrftime_long (const ctx_dev *cam,
 
     // tell if the current event has triggered the area detect
     if (SPECIFIERWORD("areadetect")) {
-        if (cam->areadetect_eventnbr == cam->event_nr) {
+        if (cam->areadetect_eventnbr == cam->event_curr_nbr) {
             sprintf(out, "%*s", width, "Y");
         } else {
             sprintf(out, "%*s", width, "N");
@@ -901,12 +901,8 @@ AVPacket *mypacket_alloc(AVPacket *pkt)
  */
 void util_exec_command(ctx_dev *cam, const char *command, char *filename)
 {
+
     char stamp[PATH_MAX];
-    int pid;
-
-    mystrftime(cam, stamp, sizeof(stamp), command, filename);
-
-        char stamp[PATH_MAX];
     int pid;
 
     mystrftime(cam, stamp, sizeof(stamp), command, filename);

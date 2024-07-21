@@ -1010,7 +1010,7 @@ void alg_update_reference_frame0(ctx_dev *cam, int action)
         /* Copy fresh image */
         memcpy(cam->imgs.ref, cam->imgs.image_vprvcy, cam->imgs.size_norm);
         /* Reset static objects */
-        memset(cam->imgs.ref_dyn, accept_timer * 0.6, cam->imgs.motionsize * sizeof(*cam->imgs.ref_dyn)); //accept_timer * 0.6
+        memset(cam->imgs.ref_dyn, 0, cam->imgs.motionsize * sizeof(*cam->imgs.ref_dyn)); //accept_timer * 0.6
     }
 }
 
