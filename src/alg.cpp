@@ -730,7 +730,7 @@ static void alg_diff_smart(ctx_dev *cam)
     unsigned char *out  = cam->imgs.image_motion.image_norm;
     unsigned char *smartmask_final = cam->imgs.smartmask_final;
     unsigned char *new_img = cam->imgs.image_vprvcy;
-    unsigned char *new_img_p1 = cam->imgs.image_vprvcy + cam->imgs.motionsize;            
+    //unsigned char *new_img_p1 = cam->imgs.image_vprvcy + cam->imgs.motionsize;            
 
     int i, curdiff;
     int imgsz = cam->imgs.motionsize;
@@ -857,7 +857,7 @@ static bool alg_diff_fast(ctx_dev *cam)
     int i, curdiff, diffs = 0;
     int step = cam->imgs.motionsize / 10000;
     int noise = cam->noise;
-    int max_n_changes = cam->conf->threshold / 2;
+    int max_n_changes = cam->threshold / 2;
     unsigned char *ref = imgs->ref;
     unsigned char *new_img = cam->imgs.image_vprvcy;
 
@@ -962,7 +962,7 @@ void alg_update_reference_frame0(ctx_dev *cam, int action)
     }
     accept_timer = cam->conf->static_object_time * 3;
     if (!cam->detecting_motion) {
-        accept_timer = accept_timer * 0.8;
+        accept_timer = (int)(accept_timer * 0.8);
     }
 
     else if (action == UPDATE_REF_FRAME) { /* Black&white only for better performance. */
@@ -1303,19 +1303,22 @@ void alg_stddev(ctx_dev *cam)
         , cam->current_image->diffs
         , cam->current_image->diffs_ratio);
     */
+   double sdev_x_scale = cam->imgs.width / 1000.0;
+   double sdev_y_scale = cam->imgs.height / 1000.0;
+   double sdev_xy_scale = cam->imgs.width * cam->imgs.height / 1000000.0;
 
     if (cam->conf->threshold_sdevx > 0) {
-        if (cam->current_image->location.stddev_x > cam->conf->threshold_sdevx) {
+        if (cam->current_image->location.stddev_x > (float) cam->conf->threshold_sdevx * sdev_x_scale) {
             cam->current_image->diffs = 0;
             return;
         }
     } else if (cam->conf->threshold_sdevy > 0) {
-        if (cam->current_image->location.stddev_y > cam->conf->threshold_sdevy) {
+        if (cam->current_image->location.stddev_y > (float) cam->conf->threshold_sdevy * sdev_y_scale) {
             cam->current_image->diffs = 0;
             return;
         }
     } else if (cam->conf->threshold_sdevxy > 0) {
-        if (cam->current_image->location.stddev_xy > cam->conf->threshold_sdevxy) {
+        if (cam->current_image->location.stddev_xy > (float) cam->conf->threshold_sdevxy * sdev_xy_scale) {
             cam->current_image->diffs = 0;
             return;
         }

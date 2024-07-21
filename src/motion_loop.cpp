@@ -469,11 +469,14 @@ static void mlp_init_firstimage(ctx_dev *cam)
     }
 
     cam->noise = cam->conf->noise_level;
-    cam->threshold = cam->conf->threshold;
+
+    //adapt threshold and sdev
+    double scale_to_1MP = (double) cam->imgs.motionsize / 1000000.0;
+    cam->threshold = (int)(cam->conf->threshold * scale_to_1MP);
     if (cam->conf->threshold_maximum > cam->conf->threshold ) {
-        cam->threshold_maximum = cam->conf->threshold_maximum;
+        cam->threshold_maximum = (int)(cam->conf->threshold_maximum * scale_to_1MP);
     } else {
-        cam->threshold_maximum = (cam->imgs.height * cam->imgs.width * 3) / 2;
+        cam->threshold_maximum = (cam->imgs.height * cam->imgs.width * 3) / 2; // is this right / should be cam->imgs.motionsize
     }
 
 }
