@@ -1,5 +1,6 @@
 ##### config.txt
 dtparam=pwr_led_activelow=off
+dtparam=pwr_led_trigger=default-on
 
 ##### apache2.conf
 ServerName localhost
@@ -23,3 +24,7 @@ Group pi
 ##### envvars
 export APACHE_RUN_USER=pi
 export APACHE_RUN_GROUP=pi
+
+##install
+sudo apt install autoconf automake autopoint build-essential pkgconf libtool libzip-dev libjpeg-dev git libavformat-dev libavcodec-dev libavutil-dev libswscale-dev libavdevice-dev libopencv-dev libwebp-dev gettext libmicrohttpd-dev libmariadb-dev libcamera-dev libcamera-tools libcamera-v4l2 libasound2-dev libpulse-dev libfftw3-dev
+sudo apt install apache2
