@@ -63,7 +63,7 @@ void cls_libcam::cam_log_controls()
     motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "Libcamera Controls:");
 
     motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AeEnable(bool)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AeLocked(bool)");
+    //motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AeLocked(bool)");
 
     motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AeMeteringMode(int)");
     motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    MeteringCentreWeighted = 0");
@@ -187,12 +187,12 @@ void cls_libcam:: cam_log_draft()
     motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    ColorCorrectionAberrationFast = 1");
     motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    ColorCorrectionAberrationHighQuality = 2");
 
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AeState(int)");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AeStateSearching = 1");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AeStateConverged = 2");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AeStateLocked = 3");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AeStateFlashRequired = 4");
-    motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AeStatePrecapture = 5");
+    // motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AeState(int)");
+    // motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AeStateSearching = 1");
+    // motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AeStateConverged = 2");
+    // motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AeStateLocked = 3");
+    // motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AeStateFlashRequired = 4");
+    // motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AeStatePrecapture = 5");
 
     motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "  AwbState(int)");
     motpls_log(DBG, TYPE_VIDEO, NO_ERRNO,0,NULL, "    AwbStateInactive = 0");
@@ -285,9 +285,9 @@ void cls_libcam::cam_config_control_item(std::string pname, std::string pvalue)
     if (pname == "AeEnable") {
         controls.set(controls::AeEnable, mtob(pvalue));
     }
-    if (pname == "AeLocked") {
-        controls.set(controls::AeLocked, mtob(pvalue));
-    }
+    // if (pname == "AeLocked") {
+    //     controls.set(controls::AeLocked, mtob(pvalue));
+    // }
     if (pname == "AeMeteringMode") {
        controls.set(controls::AeMeteringMode, mtoi(pvalue));
     }
@@ -435,9 +435,9 @@ void cls_libcam::cam_config_control_item(std::string pname, std::string pvalue)
     if (pname == "ColorCorrectionAberrationMode") {
         controls.set(controls::draft::ColorCorrectionAberrationMode, mtoi(pvalue));
     }
-    if (pname == "AeState") {
-        controls.set(controls::draft::AeState, mtoi(pvalue));
-    }
+    // if (pname == "AeState") {
+    //     controls.set(controls::draft::AeState, mtoi(pvalue));
+    // }
     if (pname == "AwbState") {
         controls.set(controls::draft::AwbState, mtoi(pvalue));
     }
