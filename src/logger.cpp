@@ -16,305 +16,302 @@
  *
  */
 #include "motionplus.hpp"
-#include "conf.hpp"
 #include "util.hpp"
+#include "conf.hpp"
 #include "logger.hpp"
-#include <stdarg.h>
-#include <syslog.h>
 
-static int log_mode = LOGMODE_SYSLOG;
-static FILE *logfile  = NULL;
-static int log_level = LEVEL_DEFAULT;
-static int log_type = TYPE_DEFAULT;
+cls_log *motlog;
 
-static const char *log_type_str[]  = {NULL, "COR", "STR", "ENC", "NET", "DBS", "EVT", "TRK", "VID", "ALL"};
-static const char *log_level_str[] = {NULL, "EMG", "ALR", "CRT", "ERR", "WRN", "NTC", "INF", "DBG", "ALL"};
-static ctx_motapp *log_motapp;  /*Used to access the parms mutex for updates*/
+const char *log_type_str[]  = {NULL, "COR", "STR", "ENC", "NET", "DBS", "EVT", "TRK", "VID", "ALL"};
+const char *log_level_str[] = {NULL, "EMG", "ALR", "CRT", "ERR", "WRN", "NTC", "INF", "DBG", "ALL"};
 
-/** Returns index of log type or 0 if not valid type. */
-static int log_get_type(const char *type)
+void ff_log(void *var1, int errnbr, const char *fmt, va_list vlist)
 {
-    unsigned int i, ret = 0;
-    unsigned int maxtype = sizeof(log_type_str)/sizeof(const char *);
+    (void)var1;
+    char buff[1024];
+    int fflvl;
 
-    for (i = 1;i < maxtype; i++) {
-        if (!strncasecmp(type, log_type_str[i], 3)) {
-            ret = i;
-            break;
-        }
-    }
+    vsnprintf(buff, sizeof(buff), fmt, vlist);
 
-    return ret;
-}
+    buff[strlen(buff)-1] = 0;
 
-void log_set_type(const char *new_logtype)
-{
-
-    if ( mystreq(new_logtype, log_type_str[log_type]) ) {
+    if (strstr(buff, "forced frame type") != nullptr) {
         return;
     }
 
-    pthread_mutex_lock(&log_motapp->mutex_parms);
-        log_type = log_get_type(new_logtype);
-    pthread_mutex_unlock(&log_motapp->mutex_parms);
+    /*
+    AV_LOG_QUIET    -8  1
+    AV_LOG_PANIC     0  2
+    AV_LOG_FATAL     8  3
+    AV_LOG_ERROR    16  4
+    AV_LOG_WARNING  24  5
+    AV_LOG_INFO     32  6
+    AV_LOG_VERBOSE  40  7
+    AV_LOG_DEBUG    48  8
+    AV_LOG_TRACE    56  9
+    */
 
-}
+    fflvl = ((motlog->log_fflevel -2) * 8);
 
-void log_set_level(int new_loglevel)
-{
-
-    if (new_loglevel == log_level) {
-        return;
-    }
-
-    pthread_mutex_lock(&log_motapp->mutex_parms);
-        log_level = new_loglevel;
-    pthread_mutex_unlock(&log_motapp->mutex_parms);
-
-}
-
-/** Sets mode of logging, could be using syslog or files. */
-static void log_set_mode(int mode)
-{
-    int prev_mode = log_mode;
-
-    log_mode = mode;
-
-    if (mode == LOGMODE_SYSLOG && prev_mode != LOGMODE_SYSLOG) {
-        openlog("motionplus", LOG_PID, LOG_USER);
-    }
-
-    if (mode != LOGMODE_SYSLOG && prev_mode == LOGMODE_SYSLOG) {
-        closelog();
+    if (errnbr <= fflvl ) {
+        MOTPLS_LOG(INF, TYPE_ALL, NO_ERRNO,"%s",buff );
     }
 }
 
-/** Sets logfile to be used instead of syslog. */
-static void log_set_logfile(const char *logfile_name)
+void cls_log::log_history_init()
 {
-    /* Setup temporary to let log if myfopen fails */
-    log_set_mode(LOGMODE_SYSLOG);
+    int             indx;
+    ctx_log_item    log_item;
 
-    logfile = myfopen(logfile_name, "ae");
+    log_item.log_msg= "";
+    for (indx=0;indx<200;indx++){
+        log_item.log_nbr = indx;
+        log_vec.push_back(log_item);
+    }
+}
 
-    /* If logfile was opened correctly */
-    if (logfile) {
-        log_set_mode(LOGMODE_FILE);
+void cls_log::log_history_add(std::string msg)
+{
+    int indx, mx;
+
+    mx = (int)log_vec.size();
+    for (indx=0;indx<mx-1;indx++) {
+        log_vec[indx].log_nbr = log_vec[indx+1].log_nbr;
+        log_vec[indx].log_msg = log_vec[indx+1].log_msg;
     }
 
-    return;
+    /*Arbritrary large number*/
+    if (log_vec[mx-1].log_nbr >50000000L) {
+        log_history_init();
+    }
+    log_vec[mx-1].log_nbr++;
+    log_vec[mx-1].log_msg = msg;
+
 }
 
-/** Return string with human readable time */
-static char *str_time(void)
+void cls_log::write_flood(int loglvl)
 {
-    static char buffer[16];
-    time_t now = 0;
-
-    now = time(0);
-    strftime(buffer, 16, "%b %d %H:%M:%S", localtime(&now));
-    return buffer;
-}
-
-/**
- *    This routine is used for printing all informational, debug or error
- *    messages produced by any of the other motionplus functions.
- */
-void motpls_log(int msg_level, int msg_type, int msg_err, int msg_fnc, const char *msg_fncnm, ...)
-{
-    int errno_save, n, prefixlen, timelen;
-    char buf[1024]= {0};
-    char usrfmt[1024]= {0};
-    char msg_buf[100]= {0};
-
-    va_list ap;
-    unsigned long threadnr;
-
-    static int flood_cnt = 0;
-    static char flood_msg[1024];
-    static char prefix_msg[512];
     char flood_repeats[1024];
-    char threadname[32];
-    int  applvl, apptyp;
 
-    pthread_mutex_lock(&log_motapp->mutex_parms);
-        applvl = log_level;
-        apptyp = log_type;
-    pthread_mutex_unlock(&log_motapp->mutex_parms);
-
-    /*Exit if not our level or type */
-    if (msg_level > applvl) {
-        return;
-    }
-    if ((apptyp != TYPE_ALL) && (apptyp != msg_type)) {
+    if (flood_cnt <= 1) {
         return;
     }
 
-    threadnr = (unsigned long)pthread_getspecific(tls_key_threadnr);
-
-    snprintf(buf, sizeof(buf), "%s","");
-    n = 0;
-    errno_save = errno;
-    mythreadname_get(threadname);
+    snprintf(flood_repeats, sizeof(flood_repeats)
+        , "%s Above message repeats %d times\n"
+        , msg_prefix, flood_cnt-1);
 
     if (log_mode == LOGMODE_FILE) {
-        n = snprintf(buf, sizeof(buf), "%s [%s][%s][%02ld:%s] "
-            , str_time(), log_level_str[msg_level], log_type_str[msg_type]
-            , threadnr, threadname );
-        timelen = 16;
+        fputs(flood_repeats, log_file_ptr);
+        fflush(log_file_ptr);
+
+    } else {    /* The syslog level values are one less*/
+        syslog(loglvl-1, "%s", flood_repeats);
+        fputs(flood_repeats, stderr);
+        fflush(stderr);
+    }
+    log_history_add(flood_repeats);
+}
+
+void cls_log::write_norm(int loglvl, uint prefixlen)
+{
+    flood_cnt = 1;
+
+    if (snprintf(msg_flood, sizeof(msg_flood), "%s", &msg_full[prefixlen]) < 0) {
+        return;
+    }
+    if (snprintf(msg_prefix, prefixlen, "%s", msg_full) < 0) {
+        return;
+    }
+
+    if (log_mode == LOGMODE_FILE) {
+        strcpy(msg_full + strlen(msg_full),"\n");
+        fputs(msg_full, log_file_ptr);
+        fflush(log_file_ptr);
     } else {
-        n = snprintf(buf, sizeof(buf), "[%s][%s][%02ld:%s] "
-            , log_level_str[msg_level], log_type_str[msg_type]
-            , threadnr, threadname );
-        timelen = 0;
+        syslog(loglvl-1, "%s", msg_full);
+        strcpy(msg_full + strlen(msg_full),"\n");
+        fputs(msg_full, stderr);
+        fflush(stderr);
     }
-    prefixlen = n;
+    log_history_add(msg_full);
+}
 
-    /* Prepend the format specifier for the function name */
+void cls_log::add_errmsg(int flgerr, int err_save)
+{
+    size_t errsz, msgsz;
+    char err_buf[90];
 
-    va_start(ap, msg_fncnm);
-    if (msg_fnc) {
-        prefixlen += (int)strlen(msg_fncnm)+2;
-        snprintf(usrfmt, sizeof (usrfmt),"%s:%s", msg_fncnm, va_arg(ap, char *));
-    } else {
-        snprintf(usrfmt, sizeof (usrfmt),"%s", va_arg(ap, char *));
-    }
-    n += vsnprintf(buf + n, sizeof(buf) - n, usrfmt, ap);
-    va_end(ap);
-    buf[1023] = '\0';
-
-    /* If msg_err is set, add on the library error message. */
-    if (msg_err) {
-        size_t buf_len = strlen(buf);
-        // just knock off 10 characters if we're that close...
-        if (buf_len + 10 > 1024) {
-            buf[1024 - 10] = '\0';
-            buf_len = 1024 - 10;
-        }
-        strncat(buf, ": ", 1024 - buf_len);
-        n += 2;
-        #if defined(XSI_STRERROR_R)
-            /* XSI-compliant strerror_r() */
-            strerror_r(errno_save, buf + n, sizeof(buf) - n);    /* 2 for the ': ' */
-            (void)msg_buf;
-        #else
-            /* GNU-specific strerror_r() */
-            strncat(buf, strerror_r(errno_save, msg_buf, sizeof(msg_buf)), 1024 - strlen(buf));
-        #endif
+    if (flgerr == NO_ERRNO) {
+        return;
     }
 
-    if ((mystreq(&buf[timelen], flood_msg)) && (flood_cnt <= 5000)) {
-        flood_cnt++;
-    } else {
-        if (flood_cnt > 1) {
-            snprintf(flood_repeats, 1024
-                , "%s Above message repeats %d times"
-                , prefix_msg, flood_cnt-1);
-            switch (log_mode) {
-            case LOGMODE_FILE:
-                strncat(flood_repeats, "\n", 1024 - strlen(flood_repeats));
-                fputs(flood_repeats, logfile);
-                fflush(logfile);
-                break;
+    memset(err_buf, 0, sizeof(err_buf));
+    #if defined(XSI_STRERROR_R) /* XSI-compliant strerror_r() */
+        (void)strerror_r(err_save, err_buf, sizeof(err_buf));
+    #else/* GNU-specific strerror_r() */
+        (void)snprintf(err_buf, sizeof(err_buf),"%s"
+            , strerror_r(err_save, err_buf, sizeof(err_buf)));
+    #endif
+    errsz = strlen(err_buf);
+    msgsz = strlen(msg_full);
 
-            case LOGMODE_SYSLOG:
-                /* The syslog level values are one less than the motionplus numeric values*/
-                syslog(msg_level-1, "%s", flood_repeats);
-                strncat(flood_repeats, "\n", 1024 - strlen(flood_repeats));
-                fputs(flood_repeats, stderr);
-                fflush(stderr);
-                break;
-            }
-        }
-        flood_cnt = 1;
-        snprintf(flood_msg, 1024, "%s", &buf[timelen]);
-        snprintf(prefix_msg, prefixlen, "%s", buf);
-        switch (log_mode) {
-        case LOGMODE_FILE:
-            strncat(buf, "\n", 1024 - strlen(buf));
-            fputs(buf, logfile);
-            fflush(logfile);
-            break;
-
-        case LOGMODE_SYSLOG:
-            /* The syslog level values are one less than the motionplus numeric values*/
-            syslog(msg_level-1, "%s", buf);
-            strncat(buf, "\n", 1024 - strlen(buf));
-            fputs(buf, stderr);
-            fflush(stderr);
-            break;
-        }
+    if ((msgsz+errsz+2) >= sizeof(msg_full)) {
+        msgsz = msgsz-errsz-2;
+        memset(msg_full+msgsz, 0, sizeof(msg_full) - msgsz);
     }
+    strcpy(msg_full+msgsz,": ");
+    memcpy(msg_full+msgsz + 2, err_buf, errsz);
 
 }
 
-void log_init(ctx_motapp *motapp)
+void cls_log::set_mode(int mode_new)
 {
-
-    if ((motapp->conf->log_level > ALL) ||
-        (motapp->conf->log_level == 0)) {
-        motapp->conf->log_level = LEVEL_DEFAULT;
-        MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO
-            ,_("Using default log level (%s) (%d)")
-            ,log_level_str[motapp->conf->log_level]
-            ,motapp->conf->log_level);
+    if ((log_mode != LOGMODE_SYSLOG) && (mode_new == LOGMODE_SYSLOG)) {
+        openlog("motionplus", LOG_PID, LOG_USER);
     }
+    if ((log_mode == LOGMODE_SYSLOG) && (mode_new != LOGMODE_SYSLOG)) {
+        closelog();
+    }
+    log_mode = mode_new;
+}
 
+void cls_log::set_log_file(std::string pname)
+{
+    if ((pname == "") || (pname == "syslog")) {
+        if (log_file_ptr != nullptr) {
+            myfclose(log_file_ptr);
+            log_file_ptr = nullptr;
+        }
+        if (log_file_name == "") {
+            set_mode(LOGMODE_SYSLOG);
+            log_file_name = "syslog";
+            MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO, "Logging to syslog");
+        }
 
-    if (motapp->conf->log_file != "") {
-        if (motapp->conf->log_file != "syslog") {
-            log_set_mode(LOGMODE_FILE);
-            log_set_logfile(motapp->conf->log_file.c_str());
-            if (logfile) {
-                log_set_mode(LOGMODE_SYSLOG);
-                MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO
-                    , _("Logging to file (%s)")
-                    , motapp->conf->log_file.c_str());
-                log_set_mode(LOGMODE_FILE);
-            } else {
-                MOTPLS_LOG(EMG, TYPE_ALL, SHOW_ERRNO
-                    , _("Exit MotionPlus, cannot create log file %s")
-                    , motapp->conf->log_file.c_str());
-                exit(0);
-            }
+    } else if ((pname != log_file_name) || (log_file_ptr == nullptr)) {
+        if (log_file_ptr != nullptr) {
+            myfclose(log_file_ptr);
+            log_file_ptr = nullptr;
+        }
+        log_file_ptr = myfopen(pname.c_str(), "ae");
+        if (log_file_ptr != nullptr) {
+            log_file_name = pname;
+            set_mode(LOGMODE_SYSLOG);
+            MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO, "Logging to file (%s)"
+                ,pname.c_str());
+            set_mode(LOGMODE_FILE);
         } else {
-            MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO, _("Logging to syslog"));
+            log_file_name = "syslog";
+            set_mode(LOGMODE_SYSLOG);
+            MOTPLS_LOG(EMG, TYPE_ALL, SHOW_ERRNO, "Cannot create log file %s"
+                , pname.c_str());
         }
+    }
+}
+
+void cls_log::write_msg(int loglvl, int msg_type, int flgerr, int flgfnc, ...)
+{
+    int err_save, n;
+    uint prefixlen;
+    std::string usrfmt;
+    char msg_time[32];
+    char threadname[32];
+    va_list ap;
+    time_t now;
+
+    if (loglvl > log_level) {
+        return;
+    }
+
+    pthread_mutex_lock(&mutex_log);
+
+    err_save = errno;
+    memset(msg_full, 0, sizeof(msg_full));
+
+    mythreadname_get(threadname);
+
+    now = time(NULL);
+    strftime(msg_time, sizeof(msg_time)
+        , "%b %d %H:%M:%S", localtime(&now));
+
+    if (log_mode == LOGMODE_FILE) {
+        n = snprintf(msg_full, sizeof(msg_full)
+            , "%s [%s][%s][%s] ", msg_time
+            , log_level_str[loglvl],log_type_str[msg_type], threadname );
     } else {
-        MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO, _("Logging to syslog"));
+        n = snprintf(msg_full, sizeof(msg_full)
+        , "[%s][%s][%s] "
+        , log_level_str[loglvl],log_type_str[msg_type], threadname );
     }
-    MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO, "MotionPlus %s started",VERSION);
+    prefixlen = (uint)n;
 
-    motapp->conf->log_type = log_get_type(motapp->conf->log_type_str.c_str());
+    /* flgfnc must be an int.  Bool has compile error*/
+    va_start(ap, flgfnc);
+        usrfmt = va_arg(ap, char *);
+        if (flgfnc == 1) {
+            usrfmt.append(": ").append(va_arg(ap, char *));
+        }
+        n += vsnprintf(msg_full + n
+            , sizeof(msg_full) - (uint)n - 1
+            , usrfmt.c_str(), ap);
+    va_end(ap);
 
-    MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO
-        , _("Using log type (%s) log level (%s)")
-        , log_type_str[motapp->conf->log_type]
-        , log_level_str[motapp->conf->log_level]);
+    add_errmsg(flgerr, err_save);
 
-    log_set_level(motapp->conf->log_level);
-    log_type = motapp->conf->log_type;
-
-}
-
-void log_deinit(ctx_motapp *motapp)
-{
-
-    if (logfile != NULL) {
-        MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO
-            , _("Closing logfile (%s).")
-            , motapp->conf->log_file.c_str());
-        myfclose(logfile);
-        log_set_mode(LOGMODE_NONE);
-        logfile = NULL;
+    if ((flood_cnt <= 5000) &&
+        mystreq(msg_flood, &msg_full[prefixlen])) {
+        flood_cnt++;
+        pthread_mutex_unlock(&mutex_log);
+        return;
     }
 
+    write_flood(loglvl);
+
+    write_norm(loglvl, prefixlen);
+
+    pthread_mutex_unlock(&mutex_log);
+
 }
 
-/* Set the static motapp pointer in logger module */
-void log_init_app(ctx_motapp *motapp)
+void cls_log::shutdown()
 {
-    /* Need better design to avoid the need to do this.  Extern motapp to whole app? */
-    log_motapp = motapp;  /* Set our static pointer used for locking parms mutex*/
-
+    if (log_file_ptr != nullptr) {
+        myfclose(log_file_ptr);
+        log_file_ptr = nullptr;
+    }
 }
+
+void cls_log::startup()
+{
+    motlog->log_level = app->cfg->log_level;
+    motlog->log_fflevel = app->cfg->log_fflevel;
+    motlog->set_log_file(app->cfg->log_file);
+}
+
+cls_log::cls_log(cls_motapp *p_app)
+{
+    app = p_app;
+    log_mode = LOGMODE_NONE;
+    log_level = LEVEL_DEFAULT;
+    log_fflevel = 4;
+    log_file_ptr  = nullptr;
+    log_file_name = "";
+    flood_cnt = 0;
+    restart = false;
+    set_mode(LOGMODE_SYSLOG);
+    pthread_mutex_init(&mutex_log, NULL);
+    memset(msg_prefix,0,sizeof(msg_prefix));
+    memset(msg_flood,0,sizeof(msg_flood));
+    memset(msg_full,0,sizeof(msg_full));
+    log_history_init();
+    av_log_set_callback(ff_log);
+}
+
+cls_log::~cls_log()
+{
+    shutdown();
+    pthread_mutex_destroy(&mutex_log);
+}
+
+

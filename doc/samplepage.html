@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en"><head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8">
-<meta charset="UTF-8">
+<html lang='en'>
+<head>
+<meta charset='UTF-8'>
 <title>MotionPlusSamplePage</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name='viewport' content='width=device-width, initial-scale=1'>
   <style>
     * {
       margin: 0;
@@ -234,57 +234,85 @@
       background-color: transparent;
       text-decoration: none;
     }
+   .cls_log {
+     background-color: transparent;
+     color: white;
+     text-align: center;
+     margin-top: 0rem;
+     margin-bottom: 0rem;
+     font-weight: normal;
+     font-size: 0.90rem;
+   }
+   .cls_log textarea {
+     overflow-y: scroll;
+     background-color: lightgrey;
+     padding: 0rem;
+     height: 10rem;
+     width: 50rem;
+     text-align: left;
+   }
   </style>
 </head>
 
-<body class="body" onload="initform()">
-  <div id="divnav_main" class="sidenav" style="width: 10rem;">
-    <a class="closebtn" onclick="nav_close()">X</a>
+<body class='body' onload='initform()'>
+  <div id="divnav_main" class="sidenav">
+    <a class='closebtn' onclick='nav_close()'>X</a>
     <div id="divnav_version">
       <!-- Filled in by script -->
     </div>
-    <button onclick="display_cameras()" id="cam_btn" class="dropbtn">Cameras</button>
-    <div id="divnav_cam" class="dropdown-content" style="display: none;">  
-    <!-- Filled in by script -->
+    <button onclick='display_cameras()'  id='cam_btn' class='dropbtn'>Cameras</button>
+    <div id='divnav_cam' class='dropdown-content'>
+      <!-- Filled in by script -->
     </div>
-    <button onclick="display_actions()" id="actions_btn" class="dropbtn">Actions</button>
-    <div id="divnav_actions" class="dropdown-content" style="display: none;">
-    <!-- Filled in by script -->
+    <button onclick='display_actions()'  id='actions_btn' class='dropbtn'>Actions</button>
+    <div id='divnav_actions' class='dropdown-content'>
+      <!-- Filled in by script -->
     </div>
-    <button onclick="display_config()" id="cfg_btn" class="dropbtn">
+    <button
+      onclick='display_config()' id='cfg_btn' class='dropbtn'>
       Configuration
     </button>
-    <div id="divnav_config" class="dropdown-content" style="display: block;">
-    <!-- Filled in by script -->
+    <div id='divnav_config' class='dropdown-content'>
+      <!-- Filled in by script -->
     </div>
-    <button onclick="display_movies()" id="mov_btn" class="dropbtn">
+    <button
+      onclick='display_movies()' id='mov_btn' class='dropbtn'>
       Recordings
     </button>
-    <div id="divnav_movies" class="dropdown-content" style="display: none;">
-    <!-- Filled in by script -->
+    <div id='divnav_movies' class='dropdown-content'>
+      <!-- Filled in by script -->
     </div>
   </div>
-  <div id="divmain" style="margin-left: 10rem;">
-    <button id="menu_btn" onclick="nav_open();" style="display: none;" class="menubtn">|||</button>
+
+  <div id='divmain' style='margin-left:10rem' >
+    <button id='menu_btn'
+      onclick='nav_open();'
+      style='display:none'
+      class='menubtn'>|||</button>
     <p></p>
-    <div id="div_cam" style="display: none;">
-    <!-- Filled in by script -->
-    </div>
-
-    <div id="div_config" style="display: inline;">
-    <!-- Filled in by script -->
-    </div>
-
-    <div id="div_movies" class="cls_movies" style="display: none;">
+    <div id='div_cam' >
       <!-- Filled in by script -->
+    </div>
+
+    <div id='div_config'>
+      <!-- Filled in by script -->
+    </div>
+
+    <div id='div_movies' class='cls_movies'>
+      <!-- Filled in by script -->
+    </div>
+
+    <div id='div_log' class='cls_log' style='display:none' >
+      <textarea id='txta_log' ></textarea>
     </div>
 
   </div>
 
   <script>
     var pData, pMovies, pHostFull;
-    var gIndxScan, gIndxCam, gGetImgs;
+    var gIndxScan, gIndxCam, gGetImgs, gLogNbr;
     var pic_url = Array(4);
+    var log_timer;
     var cams_scan_timer, cams_all_timer, cams_one_timer;
 
     function nav_open() {
@@ -304,7 +332,12 @@
       var request = new XMLHttpRequest();
       var xmlhttp = new XMLHttpRequest();
       var camid = document.getElementsByName('camdrop')[0].value;
-      var pCfg = pData['configuration']['cam'+camid];
+
+      if (camid == 0) {
+        var pCfg = pData['configuration']['default'];
+      } else {
+        var pCfg = pData['configuration']['cam'+camid];
+      }
 
       xmlhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
@@ -425,6 +458,14 @@
         }
       }
 
+      if (gIndxCam == -1) {
+        document.getElementById('cfgpic').src =
+          pHostFull+"/0/mjpg/stream";
+      } else {
+        document.getElementById('cfgpic').src =
+          pData['cameras'][gIndxCam]['url'] + "mjpg/stream" ;
+      }
+
     }
 
     function config_hideall() {
@@ -451,7 +492,7 @@
         camid = pData['cameras'][gIndxCam]['id'];
       }
 
-      return camid; 
+      return camid;
     }
 
     function assign_version() {
@@ -508,6 +549,53 @@
     function assign_actions() {
       var html_actions = "\n";
       html_actions += "  ";
+      html_actions += "<a onclick=\"send_action(";
+      html_actions += "'eventstart');\">";
+      html_actions += "Start Event</a>\n";
+
+      html_actions += "<a onclick=\"send_action(";
+      html_actions += "'eventend');\">";
+      html_actions += "End Event</a>\n";
+
+      html_actions += "<a onclick=\"send_action(";
+      html_actions += "'snapshot');\">";
+      html_actions += "Snapshot</a>\n";
+
+      html_actions += "<a onclick=\"send_action(";
+      html_actions += "'pause');\">";
+      html_actions += "Pause</a>\n";
+
+      html_actions += "<a onclick=\"send_action(";
+      html_actions += "'unpause');\">";
+      html_actions += "Unpause</a>\n";
+
+      html_actions += "<a onclick=\"send_action(";
+      html_actions += "'restart');\">";
+      html_actions += "Start/Restart</a>\n";
+
+      html_actions += "<a onclick=\"send_action(";
+      html_actions += "'stop');\">";
+      html_actions += "Stop</a>\n";
+
+      html_actions += "<a onclick=\"send_action(";
+      html_actions += "'config_write');\">";
+      html_actions += "Save Config</a>\n";
+
+      html_actions += "<a onclick=\"send_reload(";
+      html_actions += "'camera_add');\">";
+      html_actions += "Add Camera</a>\n";
+
+      html_actions += "<a onclick=\"send_reload(";
+      html_actions += "'camera_delete');\">";
+      html_actions += "Delete Camera</a>\n";
+
+      html_actions += "<a onclick=\"send_action(";
+      html_actions += "'action_user');\">";
+      html_actions += "User Action</a>\n";
+
+      html_actions += "<a onclick=\"log_showhide();\">";
+      html_actions += "Show/hide log</a>\n";
+
       document.getElementById("divnav_actions").innerHTML = html_actions;
 
       return;
@@ -604,10 +692,11 @@
       html_cfg += "<div id='div_";
       html_cfg += pCat[jcat]["name"];
       html_cfg += "' style='display:none' class='cls_config'>\n";
-      html_cfg += "<h3>";
+      html_cfg += "<table style='float: left'>";
+      html_cfg += "<tr><th colspan='2'>";
       html_cfg += pCat[jcat]["display"];
-      html_cfg += " Parameters</h3>\n";
-      html_cfg += "<table><tr> <td><label for 'camdrop'>camera</label></td>\n";
+      html_cfg += " Parameters</th></tr>\n";
+      html_cfg += "<tr><td><label for 'camdrop'>camera</label></td>\n";
       html_cfg += "<td class='cls_camdrop'>";
       html_cfg += "<select class='cls_drop' ";
       html_cfg += "onchange='dropchange_cam.call(this)' ";
@@ -617,7 +706,7 @@
 
       for (jkey in pCfg) {
         if (pCfg[jkey]["category"] == jcat) {
-          html_cfg += assign_config_item(jkey); 
+          html_cfg += assign_config_item(jkey);
         }
       }
       html_cfg += "<tr><td><input type='hidden' name='trailer' value='null'></td>\n";
@@ -639,6 +728,12 @@
         html_cfg += assign_config_cat(jcat);
       }
 
+      html_cfg += "<br><br><br>";
+      html_cfg += "<a><img id='cfgpic'";
+      html_cfg += "' src=" + pHostFull + "/0/mjpg/stream";
+      html_cfg += " border=0 width=45%></a>\n";
+      html_cfg += "<div style='clear: both'></div>\n;"
+
       document.getElementById("div_config").innerHTML = html_cfg;
 
     }
@@ -655,6 +750,7 @@
           gIndxCam  = -1;
           gGetImgs  = 1;
           gIndxScan = -1;
+          gLogNbr = 0;
 
           assign_config();
           assign_version();
@@ -689,7 +785,7 @@
       } else {
         document.getElementById('divnav_config').style.display = 'block';
       }
-      gIndxScan = -1; 
+      gIndxScan = -1;
       cams_timer_stop();
     }
 
@@ -702,7 +798,7 @@
       } else {
         document.getElementById('divnav_movies').style.display = 'block';
       }
-      gIndxScan = -1; 
+      gIndxScan = -1;
       cams_timer_stop();
     }
 
@@ -714,7 +810,7 @@
       } else {
         document.getElementById('divnav_actions').style.display = 'block';
       }
-      gIndxScan = -1; 
+      gIndxScan = -1;
     }
 
     function camera_buttons_ptz() {
@@ -750,6 +846,30 @@
       html_preview += "</table><p></p>";
       return html_preview;
 
+    }
+
+    function image_picall() {
+
+      document.getElementById('picall').addEventListener('click',function(event){
+        bounds=this.getBoundingClientRect();
+        var locx,locy,locw, loch,pctx,pcty;
+        var indx, camcnt, caminfo;
+        locx = Math.floor(event.pageX - bounds.left - window.scrollX);
+        locy = Math.floor(event.pageY - bounds.top - window.scrollY);
+        locw = Math.floor(bounds.width);
+        loch = Math.floor(bounds.height);
+        pctx = ((locx*100)/locw);
+        pcty = ((locy*100)/loch);
+        camcnt = pData['cameras']['count'];
+        for (indx=0; indx<camcnt; indx++) {
+          if ((pctx >= pData['cameras'][indx]['all_xpct_st']) &&
+              (pctx <= pData['cameras'][indx]['all_xpct_en']) &&
+              (pcty >= pData['cameras'][indx]['all_ypct_st']) &&
+              (pcty <= pData['cameras'][indx]['all_ypct_en'])) {
+              cams_one_click(indx);
+          }
+        }
+      });
     }
 
     function image_pantilt() {
@@ -788,59 +908,79 @@
       var indx, camcnt;
       camcnt = pData['cameras']['count'];
       for (indx=0; indx<camcnt; indx++) {
-        if (document.getElementById('pic'+indx) != null) { 
-          document.getElementById('pic'+indx).src = ''; 
+        if (document.getElementById('pic'+indx) != null) {
+          document.getElementById('pic'+indx).src = '';
         }
       }
-    } 
+      document.getElementById('cfgpic').src = '';
+    }
 
     function cams_all_click() {
 
       var html_preview = "";
-      var indx;
+      var indx, chk;
       var camid;
 
       config_hideall();
       cams_timer_stop();
       gIndxCam = -1;
-      gIndxScan = -1; 
+      gIndxScan = -1;
 
       var camcnt = pData['cameras']['count'];
       html_preview += "</table>";
+      chk = 0;
       for (indx=0; indx<camcnt; indx++) {
         camid = pData['cameras'][indx].id;
-        if (pData['configuration']['cam'+camid].stream_preview_method.value == 'static') {
-          html_preview += "<a><img id='pic" + indx + "' src="
-          html_preview += pData['cameras'][indx]['url'];
-          html_preview += "static/stream/t" + new Date().getTime();
-          html_preview += " onclick='cams_one_click(" + indx + ")' ";
-          html_preview += " border=0 width=";
-          html_preview += pData['configuration']['cam'+camid].stream_preview_scale.value;
-          html_preview += "%></a>\n";
-          if (pData['configuration']['cam'+camid].stream_preview_newline.value == true) {
-            html_preview += "<br>\n";
+        if (pData['configuration']['cam'+camid].stream_preview_method.value == 'combined') {
+          chk = 1;
+        }
+      }
+      if (chk == 0) {
+        for (indx=0; indx<camcnt; indx++) {
+          camid = pData['cameras'][indx].id;
+          if (pData['configuration']['cam'+camid].stream_preview_method.value == 'static') {
+            html_preview += "<a><img id='pic" + indx + "' src="
+            html_preview += pData['cameras'][indx]['url'];
+            html_preview += "static/stream/t" + new Date().getTime();
+            html_preview += " onclick='cams_one_click(" + indx + ")' ";
+            html_preview += " border=0 width=";
+            html_preview += pData['configuration']['cam'+camid].stream_preview_scale.value;
+            html_preview += "%></a>\n";
+            if (pData['configuration']['cam'+camid].stream_preview_newline.value == true) {
+              html_preview += "<br>\n";
+            }
+          } else {
+            html_preview += "<a><img id='pic" + indx + "' src="
+            html_preview += pData['cameras'][indx]['url'];
+            html_preview += "mjpg/stream" ;
+            html_preview += " onclick='cams_one_click(" + indx + ")' ";
+            html_preview += " border=0 width=";
+            html_preview += pData['configuration']['cam'+camid].stream_preview_scale.value;
+            html_preview += "%></a>\n";
+            if (pData['configuration']['cam'+camid].stream_preview_newline.value == true) {
+              html_preview += "<br>\n";
+            }
           }
-        } else { 
-          html_preview += "<a><img id='pic" + indx + "' src="
-          html_preview += pData['cameras'][indx]['url'];
-          html_preview += "mjpg/stream" ;
-          html_preview += " onclick='cams_one_click(" + indx + ")' ";
-          html_preview += " border=0 width=";
-          html_preview += pData['configuration']['cam'+camid].stream_preview_scale.value;
-          html_preview += "%></a>\n";
-          if (pData['configuration']['cam'+camid].stream_preview_newline.value == true) {
-            html_preview += "<br>\n";
-          }
-        } 
+        }
+      } else {
+        html_preview += "<a><img id='picall' src="
+        html_preview += pHostFull;
+        html_preview += "/0/mjpg/stream" ;
+        html_preview += " border=0 width=95";
+        html_preview += "%></a>\n";
       }
       document.getElementById('div_config').style.display='none';
       document.getElementById('div_movies').style.display = 'none';
       cams_reset();
       document.getElementById('div_cam').style.display='block';
       document.getElementById('div_cam').innerHTML = html_preview;
-      cams_all_timer = setInterval(cams_all_fnc, 2000);
+      if (chk == 0) {
+        cams_all_timer = setInterval(cams_all_fnc, 1000);
+      } else {
+        image_picall();
+      }
 
-  }
+    }
 
     function cams_one_click(index_cam) {
 
@@ -851,7 +991,7 @@
       cams_timer_stop();
       gIndxCam = index_cam;
 
-      gIndxScan = -1; 
+      gIndxScan = -1;
 
       if (gIndxCam == -1 ) {
         return;
@@ -867,7 +1007,7 @@
         html_preview += pData['cameras'][gIndxCam]['url'];
         html_preview += "static/stream/t" + new Date().getTime();
         html_preview += " border=0 width=95%></a>\n";
-      } else { 
+      } else {
         html_preview += "<a><img id='pic" + gIndxCam + "' src=";
         html_preview += pData['cameras'][gIndxCam]['url'];
         html_preview += "mjpg/stream" ;
@@ -889,8 +1029,8 @@
 
       cams_timer_stop();
 
-      gIndxCam = -1; 
-      gIndxScan = 0; 
+      gIndxCam = -1;
+      gIndxScan = 0;
 
       cams_scan_timer = setInterval(cams_scan_fnc, 5);
     }
@@ -912,40 +1052,18 @@
       }
     }
 
-     function cams_img_onload(camindx, indx) {
-      document.getElementById('pic'+camindx).src = pic_url[indx];
-      pic_url[indx] = '';
-    }
-
-    function cams_all_fnc () {
-      if (gGetImgs == 1) {
+     function cams_all_fnc () {
+      var previndx = gGetImgs;
+      gGetImgs++;
+      if (gGetImgs >= pData['cameras']['count']) {
         gGetImgs = 0;
-        var camcnt = pData['cameras']['count'];
-        var camindx = 0;
-        var indx;
-        var img   = new Array(4);
-        var maxchk = 1;
-        for (indx = 0; indx <= 3; indx++) {
-          pic_url[indx] = '';
-          img[indx] = new Image();
-        }
-        while ((camindx < camcnt) && (maxchk < 10)) {
-          maxchk++;
-          camid = pData['cameras'][camindx]['id'];
-          if (pData['configuration']['cam'+camid].stream_preview_method.value == 'static') {
-            for (indx = 0; indx <= 3; indx++) {
-               if ((pic_url[indx] == '') && (camindx < camcnt)) {
-                 pic_url[indx] = pData['cameras'][camindx]['url'] + "static/stream/t" + new Date().getTime();
-                 img[indx].onload = cams_img_onload(camindx, indx);
-                 img[indx].src = pic_url[indx];
-                 camindx++;
-               }
-            }
-          } else {
-            camindx++;
-          }
-        }
-        gGetImgs = 1;
+      }
+      camid = pData['cameras'][gGetImgs]['id'];
+      if (pData['configuration']['cam'+camid].stream_preview_method.value == 'static') {
+        document.getElementById('pic'+previndx).src =
+          pData['cameras'][previndx]['url'] + "static/stream/t" + new Date().getTime();
+        document.getElementById('pic'+gGetImgs).src =
+          pData['cameras'][gGetImgs]['url'] + "mjpg/stream";
       }
     }
 
@@ -962,14 +1080,14 @@
 
       if(gIndxScan == (camcnt-1)) {
         gIndxScan = 0;
-      } else { 
+      } else {
         gIndxScan++;
       }
 
       camid = pData['cameras'][gIndxScan]['id'];
       clearInterval(cams_scan_timer);
       cams_scan_timer = setInterval(cams_scan_fnc,
-        pData['configuration']['cam'+camid].stream_scan_time.value * 1000 
+        pData['configuration']['cam'+camid].stream_scan_time.value * 1000
       );
       html_preview += "<a><img id='pic0' src="
       html_preview += pData['cameras'][gIndxScan]['url'];
@@ -1063,12 +1181,8 @@
     function movies_click(index_cam) {
       var camid, indx, camcnt, uri;
 
-      if (gIndxCam == -1 ) {
-        return;
-      }
-
       gIndxCam = index_cam;
-      gIndxScan = -1; 
+      gIndxScan = -1;
       camid = assign_camid();
       uri = pHostFull+'/'+camid+'/movies.json';
 
@@ -1085,8 +1199,55 @@
       xmlhttp.send();
     }
 
+    function log_display() {
+      var itm, msg, nbr, indx, txtalog;
+      txtalog = document.getElementById('txta_log').value;
+      for (indx = 0; indx < 1000; indx++) {
+        itm = pLog[indx];
+        if (typeof(itm) != 'undefined') {
+          msg = pLog[indx]['logmsg'];
+          if (typeof(msg) != 'undefined') {
+            gLogNbr = pLog[indx]['lognbr'];
+            if (txtalog.length > 2000) {
+              txtalog = txtalog.substring(txtalog.length - 2000);
+              txtalog = txtalog.substring(txtalog.search('\n'));
+            }
+            txtalog += '\n' + msg;
+          }
+        }
+      }
+      document.getElementById('txta_log').enabled = true;
+      document.getElementById('txta_log').value = txtalog;
+      document.getElementById('txta_log').scrollTop =
+        document.getElementById('txta_log').scrollHeight;
+      document.getElementById('txta_log').enabled = false;
+    }
+
+    function log_get() {
+      var xmlhttp = new XMLHttpRequest();
+      xmlhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          pLog = JSON.parse(this.responseText);
+          log_display();
+        }
+      };
+      xmlhttp.open('GET', pHostFull+'/0/log/'+ gLogNbr);
+      xmlhttp.send();
+    }
+
+    function log_showhide() {
+      if (document.getElementById('div_log').style.display == 'none') {
+        document.getElementById('div_log').style.display='block';
+        document.getElementById('txta_log').value = '';
+        log_timer = setInterval(log_get, 2000);
+      } else {
+        document.getElementById('div_log').style.display='none';
+        document.getElementById('txta_log').value = '';
+        clearInterval(log_timer);
+      }
+    }
+
   </script>
 
-
-
-</body></html>
+</body>
+</html>

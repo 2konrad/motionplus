@@ -16,12 +16,12 @@
  *
  */
 #include "motionplus.hpp"
-#include "conf.hpp"
 #include "util.hpp"
-#include "alg.hpp"
+#include "conf.hpp"
+#include "camera.hpp"
 #include "draw.hpp"
 #include "logger.hpp"
-#include "event.hpp"
+#include "alg.hpp"
 
 #define MAX2(x, y) ((x) > (y) ? (x) : (y))
 #define MAX3(x, y, z) ((x) > (y) ? ((x) > (z) ? (x) : (z)) : ((y) > (z) ? (y) : (z)))
@@ -33,21 +33,27 @@
 #define EXCLUDE_LEVEL_PERCENT 20
 /* Increment for *smartmask_buffer in alg_diff_standard. */
 #define SMARTMASK_SENSITIVITY_INCR 5
+#define PUSH(Y, XL, XR, DY)     /* push new segment on stack */  \
+        if (sp<stack+MAXS && Y+(DY) >= 0 && Y+(DY) < height)     \
+        {sp->y = Y; sp->xl = XL; sp->xr = XR; sp->dy = DY; sp++;}
+
+#define POP(Y, XL, XR, DY)      /* pop segment off stack */      \
+        {sp--; Y = sp->y+(DY = sp->dy); XL = sp->xl; XR = sp->xr;}
 
 typedef struct {
     int y, xl, xr, dy;
 } Segment;
 
 
-void alg_noise_tune(ctx_dev *cam)
+void cls_alg::noise_tune()
 {
     ctx_images *imgs = &cam->imgs;
     int i;
-    unsigned char *ref = imgs->ref;
+    u_char *ref = imgs->ref;
     int diff, sum = 0, count = 0;
-    unsigned char *mask = imgs->mask;
-    unsigned char *smartmask = imgs->smartmask_final;
-    unsigned char *new_img = cam->imgs.image_vprvcy;
+    u_char *mask = imgs->mask;
+    u_char *mask_final = smartmask_final;
+    u_char *new_img = cam->imgs.image_vprvcy;
 
 
     i = imgs->motionsize;
@@ -59,14 +65,14 @@ void alg_noise_tune(ctx_dev *cam)
             diff = ((diff * *mask++) / 255);
         }
 
-        if (*smartmask) {
+        if (*mask_final) {
             sum += diff + 1;
             count++;
         }
 
         ref++;
         new_img++;
-        smartmask++;
+        mask_final++;
     }
 
     if (count > 3)  {
@@ -78,7 +84,7 @@ void alg_noise_tune(ctx_dev *cam)
     cam->noise = 4 + (cam->noise + sum) / 2;
 }
 
-void alg_threshold_tune(ctx_dev *cam)
+void cls_alg::threshold_tune()
 {
     int i, top;
     int sum = 0;
@@ -96,21 +102,21 @@ void alg_threshold_tune(ctx_dev *cam)
     }
 
     for (i = 0; i < THRESHOLD_TUNE_LENGTH - 1; i++) {
-        sum += cam->diffs_last[i];
+        sum += diffs_last[i];
 
-        if (cam->diffs_last[i + 1] && !motion) {
-            cam->diffs_last[i] = cam->diffs_last[i + 1];
+        if (diffs_last[i + 1] && !motion) {
+            diffs_last[i] = diffs_last[i + 1];
         } else {
-            cam->diffs_last[i] = cam->threshold / 4;
+            diffs_last[i] = cam->threshold / 4;
         }
 
-        if (cam->diffs_last[i] > top) {
-            top = cam->diffs_last[i];
+        if (diffs_last[i] > top) {
+            top = diffs_last[i];
         }
     }
 
-    sum += cam->diffs_last[i];
-    cam->diffs_last[i] = diffs;
+    sum += diffs_last[i];
+    diffs_last[i] = diffs;
 
     sum /= THRESHOLD_TUNE_LENGTH / 4;
 
@@ -118,7 +124,7 @@ void alg_threshold_tune(ctx_dev *cam)
         sum = top * 2;
     }
 
-    if (sum < cam->conf->threshold) {
+    if (sum < cam->cfg->threshold) {
         cam->threshold = (cam->threshold + sum) / 2;
     }
 }
@@ -132,15 +138,8 @@ void alg_threshold_tune(ctx_dev *cam)
  * Filled horizontal segment of scanline y for xl <= x <= xr.
  * Parent segment was on line y - dy.  dy = 1 or -1
  */
-#define PUSH(Y, XL, XR, DY)     /* push new segment on stack */  \
-        if (sp<stack+MAXS && Y+(DY) >= 0 && Y+(DY) < height)     \
-        {sp->y = Y; sp->xl = XL; sp->xr = XR; sp->dy = DY; sp++;}
-
-#define POP(Y, XL, XR, DY)      /* pop segment off stack */      \
-        {sp--; Y = sp->y+(DY = sp->dy); XL = sp->xl; XR = sp->xr;}
-
-static int alg_iflood(int x, int y, int width, int height,
-        unsigned char *out, int *labels, int newvalue, int oldvalue)
+int cls_alg::iflood(int x, int y, int width, int height,
+        u_char *out, int *labels, int newvalue, int oldvalue)
 {
     int l, x1, x2, dy;
     Segment stack[MAXS], *sp = stack; /* Stack of filled segments. */
@@ -197,10 +196,10 @@ static int alg_iflood(int x, int y, int width, int height,
     return count;
 }
 
-static int alg_labeling(ctx_dev *cam)
+int cls_alg::labeling()
 {
     ctx_images *imgs = &cam->imgs;
-    unsigned char *out = imgs->image_motion.image_norm;
+    u_char *out = imgs->image_motion.image_norm;
     int *labels = imgs->labels;
     int ix, iy, pixelpos;
     int width = imgs->width;
@@ -217,7 +216,7 @@ static int alg_labeling(ctx_dev *cam)
     imgs->labels_above = 0;
 
     /* Init: 0 means no label set / not checked. */
-    memset(labels, 0, width * height * sizeof(*labels));
+    memset(labels, 0,(uint)(width * height) * sizeof(*labels));
     pixelpos = 0;
 
     for (iy = 0; iy < height - 1; iy++) {
@@ -233,12 +232,12 @@ static int alg_labeling(ctx_dev *cam)
                 continue;
             }
 
-            labelsize = alg_iflood(ix, iy, width, height, out, labels, current_label, 0);
+            labelsize = iflood(ix, iy, width, height, out, labels, current_label, 0);
 
             if (labelsize > 0) {
                 /* Label above threshold? Mark it again (add 32768 to labelnumber). */
                 if (labelsize > cam->threshold) {
-                    labelsize = alg_iflood(ix, iy, width, height, out, labels, current_label + 32768, current_label);
+                    labelsize = iflood(ix, iy, width, height, out, labels, current_label + 32768, current_label);
                     imgs->labelgroup_max += labelsize;
                     imgs->labels_above++;
                 } else if(max_under < labelsize) {
@@ -265,7 +264,7 @@ static int alg_labeling(ctx_dev *cam)
 }
 
 /**  Dilates a 3x3 box. */
-static int alg_dilate9(unsigned char *img, int width, int height, void *buffer)
+int cls_alg::dilate9(u_char *img, int width, int height, void *buffer)
 {
     /*
      * - row1, row2 and row3 represent lines in the temporary buffer.
@@ -276,17 +275,17 @@ static int alg_dilate9(unsigned char *img, int width, int height, void *buffer)
      * - blob keeps the current max value.
      */
     int y, i, sum = 0, widx;
-    unsigned char *row1, *row2, *row3, *rowTemp, *yp;
-    unsigned char window[3], blob, latest;
+    u_char *row1, *row2, *row3, *rowTemp, *yp;
+    u_char window[3], blob, latest;
 
     /* Set up row pointers in the temporary buffer. */
-    row1 = (unsigned char *)buffer;
+    row1 = (u_char *)buffer;
     row2 = row1 + width;
     row3 = row2 + width;
 
     /* Init rows 2 and 3. */
-    memset(row2, 0, width);
-    memcpy(row3, img, width);
+    memset(row2, 0, (uint)width);
+    memcpy(row3, img, (uint)width);
 
     /* Pointer to the current row in img. */
     yp = img;
@@ -300,9 +299,9 @@ static int alg_dilate9(unsigned char *img, int width, int height, void *buffer)
 
         /* If we're at the last row, fill with zeros, otherwise copy from img. */
         if (y == height - 1) {
-            memset(row3, 0, width);
+            memset(row3, 0, (uint)width);
         } else {
-            memcpy(row3, yp + width, width);
+            memcpy(row3, yp + width, (uint)width);
         }
 
         /* Init slots 0 and 1 in the moving window. */
@@ -352,24 +351,24 @@ static int alg_dilate9(unsigned char *img, int width, int height, void *buffer)
 }
 
 /**  Dilates a + shape. */
-static int alg_dilate5(unsigned char *img, int width, int height, void *buffer)
+int cls_alg::dilate5(u_char *img, int width, int height, void *buffer)
 {
     /*
      * - row1, row2 and row3 represent lines in the temporary buffer.
      * - mem holds the max value of the overlapping part of two + shapes.
      */
     int y, i, sum = 0;
-    unsigned char *row1, *row2, *row3, *rowTemp, *yp;
-    unsigned char blob, mem, latest;
+    u_char *row1, *row2, *row3, *rowTemp, *yp;
+    u_char blob, mem, latest;
 
     /* Set up row pointers in the temporary buffer. */
-    row1 = (unsigned char *)buffer;
+    row1 = (u_char *)buffer;
     row2 = row1 + width;
     row3 = row2 + width;
 
     /* Init rows 2 and 3. */
-    memset(row2, 0, width);
-    memcpy(row3, img, width);
+    memset(row2, 0, (uint)width);
+    memcpy(row3, img, (uint)width);
 
     /* Pointer to the current row in img. */
     yp = img;
@@ -383,9 +382,9 @@ static int alg_dilate5(unsigned char *img, int width, int height, void *buffer)
 
         /* If we're at the last row, fill with zeros, otherwise copy from img. */
         if (y == height - 1) {
-            memset(row3, 0, width);
+            memset(row3, 0, (uint)width);
         } else {
-            memcpy(row3, yp + width, width);
+            memcpy(row3, yp + width, (uint)width);
         }
 
         /* Init mem and set blob to force an evaluation of the entire + shape. */
@@ -421,7 +420,7 @@ static int alg_dilate5(unsigned char *img, int width, int height, void *buffer)
 }
 
 /**  Erodes a 3x3 box. */
-static int alg_erode9(unsigned char *img, int width, int height, void *buffer, unsigned char flag)
+int cls_alg::erode9(u_char *img, int width, int height, void *buffer, u_char flag)
 {
     int y, i, sum = 0;
     char *Row1, *Row2, *Row3;
@@ -429,17 +428,17 @@ static int alg_erode9(unsigned char *img, int width, int height, void *buffer, u
     Row1 = (char *)buffer;
     Row2 = Row1 + width;
     Row3 = Row1 + 2 * width;
-    memset(Row2, flag, width);
-    memcpy(Row3, img, width);
+    memset(Row2, flag, (uint)width);
+    memcpy(Row3, img, (uint)width);
 
     for (y = 0; y < height; y++) {
-        memcpy(Row1, Row2, width);
-        memcpy(Row2, Row3, width);
+        memcpy(Row1, Row2, (uint)width);
+        memcpy(Row2, Row3, (uint)width);
 
         if (y == height - 1) {
-            memset(Row3, flag, width);
+            memset(Row3, flag, (uint)width);
         } else {
-            memcpy(Row3, img + (y + 1) * width, width);
+            memcpy(Row3, img + (y + 1) * width, (uint)width);
         }
 
         for (i = width - 2; i >= 1; i--) {
@@ -464,7 +463,7 @@ static int alg_erode9(unsigned char *img, int width, int height, void *buffer, u
 }
 
 /* Erodes in a + shape. */
-static int alg_erode5(unsigned char *img, int width, int height, void *buffer, unsigned char flag)
+int cls_alg::erode5(u_char *img, int width, int height, void *buffer, u_char flag)
 {
     int y, i, sum = 0;
     char *Row1, *Row2, *Row3;
@@ -472,17 +471,17 @@ static int alg_erode5(unsigned char *img, int width, int height, void *buffer, u
     Row1 = (char *)buffer;
     Row2 = Row1 + width;
     Row3 = Row1 + 2 * width;
-    memset(Row2, flag, width);
-    memcpy(Row3, img, width);
+    memset(Row2, flag, (uint)width);
+    memcpy(Row3, img, (uint)width);
 
     for (y = 0; y < height; y++) {
-        memcpy(Row1, Row2, width);
-        memcpy(Row2, Row3, width);
+        memcpy(Row1, Row2, (uint)width);
+        memcpy(Row2, Row3, (uint)width);
 
         if (y == height - 1) {
-            memset(Row3, flag, width);
+            memset(Row3, flag, (uint)width);
         } else {
-            memcpy(Row3, img + (y + 1) * width, width);
+            memcpy(Row3, img + (y + 1) * width, (uint)width);
         }
 
         for (i = width - 2; i >= 1; i--) {
@@ -502,12 +501,13 @@ static int alg_erode5(unsigned char *img, int width, int height, void *buffer, u
     return sum;
 }
 
-static void alg_despeckle(ctx_dev *cam)
+void cls_alg::despeckle()
 {
-    int diffs, width, height, done, i, len;
-    unsigned char *out, *common_buffer;
+    int diffs, width, height, done;
+    uint i, len;
+    u_char *out, *common_buffer;
 
-    if ((cam->conf->despeckle_filter == "") || cam->current_image->diffs <= 0) {
+    if ((cam->cfg->despeckle_filter == "") || cam->current_image->diffs <= 0) {
         if (cam->imgs.labelsize_max) {
             cam->imgs.labelsize_max = 0;
         }
@@ -519,38 +519,38 @@ static void alg_despeckle(ctx_dev *cam)
     width = cam->imgs.width;
     height = cam->imgs.height;
     done = 0;
-    len = (int)cam->conf->despeckle_filter.length();
+    len = (uint)cam->cfg->despeckle_filter.length();
     common_buffer = cam->imgs.common_buffer;
     cam->current_image->total_labels = 0;
     cam->imgs.largest_label = 0;
 
     for (i = 0; i < len; i++) {
-        switch (cam->conf->despeckle_filter[i]) {
+        switch (cam->cfg->despeckle_filter[i]) {
         case 'E':
-            diffs = alg_erode9(out, width, height, common_buffer, 0);
+            diffs = erode9(out, width, height, common_buffer, 0);
             if (diffs == 0) {
                 i = len;
             }
             done = 1;
             break;
         case 'e':
-            diffs = alg_erode5(out, width, height, common_buffer, 0);
+            diffs = erode5(out, width, height, common_buffer, 0);
             if (diffs == 0) {
                 i = len;
             }
             done = 1;
             break;
         case 'D':
-            diffs = alg_dilate9(out, width, height, common_buffer);
+            diffs = dilate9(out, width, height, common_buffer);
             done = 1;
             break;
         case 'd':
-            diffs = alg_dilate5(out, width, height, common_buffer);
+            diffs = dilate5(out, width, height, common_buffer);
             done = 1;
             break;
         /* No further despeckle after labeling! */
         case 'l':
-            diffs = alg_labeling(cam);
+            diffs = labeling();
             i = len;
             done = 2;
             break;
@@ -571,19 +571,16 @@ static void alg_despeckle(ctx_dev *cam)
     return;
 }
 
-void alg_tune_smartmask(ctx_dev *cam)
+void cls_alg::tune_smartmask()
 {
     int i;
-    unsigned char diff;
+    u_char diff;
     int motionsize = cam->imgs.motionsize;
-    unsigned char *smartmask = cam->imgs.smartmask;
-    unsigned char *smartmask_final = cam->imgs.smartmask_final;
-    int *smartmask_buffer = cam->imgs.smartmask_buffer;
-    int sensitivity = cam->lastrate * (11 - cam->smartmask_speed);
+    int sensitivity = cam->lastrate * (11 - cam->cfg->smart_mask_speed);
 
-    if (!cam->smartmask_speed ||
+    if ((cam->cfg->smart_mask_speed == 0) ||
         (cam->event_curr_nbr == cam->event_prev_nbr) ||
-        (--cam->smartmask_count)) {
+        (--smartmask_count)) {
         return;
     }
 
@@ -593,7 +590,7 @@ void alg_tune_smartmask(ctx_dev *cam)
             smartmask[i]--;
         }
         /* Increase smart_mask sensitivity based on the buffered values. */
-        diff = (unsigned char)(smartmask_buffer[i] / sensitivity);
+        diff = (u_char)(smartmask_buffer[i] / sensitivity);
 
         if (diff) {
             if (smartmask[i] <= diff + 80) {
@@ -611,31 +608,27 @@ void alg_tune_smartmask(ctx_dev *cam)
         }
     }
     /* Further expansion (here:erode due to inverted logic!) of the mask. */
-    alg_erode9(smartmask_final, cam->imgs.width, cam->imgs.height,
+    erode9(smartmask_final, cam->imgs.width, cam->imgs.height,
                       cam->imgs.common_buffer, 255);
-    alg_erode5(smartmask_final, cam->imgs.width, cam->imgs.height,
+    erode5(smartmask_final, cam->imgs.width, cam->imgs.height,
                       cam->imgs.common_buffer, 255);
-    cam->smartmask_count = cam->smartmask_ratio;
+    smartmask_count = 5 * cam->lastrate * (11 - cam->cfg->smart_mask_speed);
 }
 
-/* Increment for *smartmask_buffer in alg_diff_standard. */
-#define SMARTMASK_SENSITIVITY_INCR 5
-
-static void alg_diff_nomask(ctx_dev *cam)
+void cls_alg::diff_nomask()
 {
-    unsigned char *ref = cam->imgs.ref;
-    unsigned char *out = cam->imgs.image_motion.image_norm;
-    unsigned char *new_img = cam->imgs.image_vprvcy;
+    u_char *ref = cam->imgs.ref;
+    u_char *out = cam->imgs.image_motion.image_norm;
+    u_char *new_img = cam->imgs.image_vprvcy;
 
     int i, curdiff;
     int imgsz = cam->imgs.motionsize;
     int diffs = 0, diffs_net = 0;
     int noise = cam->noise;
-    int lrgchg = cam->conf->threshold_ratio_change;
-    long sum_currdiff = 0;   // to see sum of difference in brightness for lightswitch
+    int lrgchg = cam->cfg->threshold_ratio_change;
 
-    memset(out + imgsz, 128, (imgsz / 2));
-    memset(out, 0, imgsz);
+    memset(out + imgsz, 128, (uint)(imgsz / 2));
+    memset(out, 0, (uint)imgsz);
 
     for (i = 0; i < imgsz; i++) {
         curdiff = (*ref - *new_img);
@@ -667,22 +660,21 @@ static void alg_diff_nomask(ctx_dev *cam)
 
 }
 
-static void alg_diff_mask(ctx_dev *cam)
+void cls_alg::diff_mask()
 {
-    unsigned char *ref  = cam->imgs.ref;
-    unsigned char *out  = cam->imgs.image_motion.image_norm;
-    unsigned char *mask = cam->imgs.mask;
-    unsigned char *new_img = cam->imgs.image_vprvcy;
-    long sum_currdiff = 0;   // to see sum of difference in brightness for lightswitch
+    u_char *ref  = cam->imgs.ref;
+    u_char *out  = cam->imgs.image_motion.image_norm;
+    u_char *mask = cam->imgs.mask;
+    u_char *new_img = cam->imgs.image_vprvcy;
 
     int i, curdiff;
     int imgsz = cam->imgs.motionsize;
     int diffs = 0, diffs_net = 0;
     int noise = cam->noise;
-    int lrgchg = cam->conf->threshold_ratio_change;
+    int lrgchg = cam->cfg->threshold_ratio_change;
 
-    memset(out + imgsz, 128, (imgsz / 2));
-    memset(out, 0, imgsz);
+    memset(out + imgsz, 128, (uint)(imgsz / 2));
+    memset(out, 0, (uint)imgsz);
 
     for (i = 0; i < imgsz; i++) {
         curdiff = (*ref - *new_img);
@@ -723,40 +715,38 @@ static void alg_diff_mask(ctx_dev *cam)
 
 }
 
-static void alg_diff_smart(ctx_dev *cam)
+void cls_alg::diff_smart()
 {
 
-    unsigned char *ref  = cam->imgs.ref;
-    unsigned char *out  = cam->imgs.image_motion.image_norm;
-    unsigned char *smartmask_final = cam->imgs.smartmask_final;
-    unsigned char *new_img = cam->imgs.image_vprvcy;
-    //unsigned char *new_img_p1 = cam->imgs.image_vprvcy + cam->imgs.motionsize;            
+    u_char *ref  = cam->imgs.ref;
+    u_char *out  = cam->imgs.image_motion.image_norm;
+    u_char *mask_final = smartmask_final;
+    u_char *new_img = cam->imgs.image_vprvcy;
 
     int i, curdiff;
     int imgsz = cam->imgs.motionsize;
     int diffs = 0, diffs_net = 0;
     int noise = cam->noise;
-    int smartmask_speed = cam->smartmask_speed;
-    int *smartmask_buffer = cam->imgs.smartmask_buffer;
-    int lrgchg = cam->conf->threshold_ratio_change;
+    int *mask_buffer = smartmask_buffer;
+    int lrgchg = cam->cfg->threshold_ratio_change;
 
     imgsz = cam->imgs.motionsize;
-    memset(out + imgsz, 128, (imgsz / 2));
-    memset(out, 0, imgsz);
+    memset(out + imgsz, 128, (uint)(imgsz / 2));
+    memset(out, 0, (uint)imgsz);
 
     for (i = 0; i < imgsz; i++) {
         curdiff = (*ref - *new_img);
-        if (smartmask_speed) {
+        if (cam->cfg->smart_mask_speed) {
             if (abs(curdiff) > noise) {
                 if (cam->event_curr_nbr != cam->event_prev_nbr) {
-                    (*smartmask_buffer) += SMARTMASK_SENSITIVITY_INCR;
+                    (*mask_buffer) += SMARTMASK_SENSITIVITY_INCR;
                 }
-                if (!*smartmask_final) {
+                if (!*mask_final) {
                     curdiff = 0;
                 }
             }
-            smartmask_final++;
-            smartmask_buffer++;
+            mask_final++;
+            mask_buffer++;
         }
         /* Pixel still in motion after all the masks? */
         if (abs(curdiff) > noise) {
@@ -783,25 +773,24 @@ static void alg_diff_smart(ctx_dev *cam)
     }
 }
 
-static void alg_diff_masksmart(ctx_dev *cam)
+void cls_alg::diff_masksmart()
 {
-    unsigned char *ref = cam->imgs.ref;
-    unsigned char *out = cam->imgs.image_motion.image_norm;
-    unsigned char *mask = cam->imgs.mask;
-    unsigned char *smartmask_final = cam->imgs.smartmask_final;
-    unsigned char *new_img = cam->imgs.image_vprvcy;
+    u_char *ref = cam->imgs.ref;
+    u_char *out = cam->imgs.image_motion.image_norm;
+    u_char *mask = cam->imgs.mask;
+    u_char *mask_final = smartmask_final;
+    u_char *new_img = cam->imgs.image_vprvcy;
 
     int i, curdiff;
     int imgsz = cam->imgs.motionsize;
     int diffs = 0, diffs_net = 0;
     int noise = cam->noise;
-    int smartmask_speed = cam->smartmask_speed;
-    int *smartmask_buffer = cam->imgs.smartmask_buffer;
-    int lrgchg = cam->conf->threshold_ratio_change;
+    int *mask_buffer = smartmask_buffer;
+    int lrgchg = cam->cfg->threshold_ratio_change;
 
     imgsz= cam->imgs.motionsize;
-    memset(out + imgsz, 128, (imgsz / 2));
-    memset(out, 0, imgsz);
+    memset(out + imgsz, 128, ((uint)imgsz / 2));
+    memset(out, 0, (uint)imgsz);
 
     for (i = 0; i < imgsz; i++) {
         curdiff = (*ref - *new_img);
@@ -809,17 +798,17 @@ static void alg_diff_masksmart(ctx_dev *cam)
             curdiff = ((curdiff * *mask) / 255);
         }
 
-        if (smartmask_speed) {
+        if (cam->cfg->smart_mask_speed) {
             if (abs(curdiff) > noise) {
                 if (cam->event_curr_nbr != cam->event_prev_nbr) {
-                    (*smartmask_buffer) += SMARTMASK_SENSITIVITY_INCR;
+                    (*mask_buffer) += SMARTMASK_SENSITIVITY_INCR;
                 }
-                if (!*smartmask_final) {
+                if (!*mask_final) {
                     curdiff = 0;
                 }
             }
-            smartmask_final++;
-            smartmask_buffer++;
+            mask_final++;
+            mask_buffer++;
         }
 
         /* Pixel still in motion after all the masks? */
@@ -851,15 +840,15 @@ static void alg_diff_masksmart(ctx_dev *cam)
 
 }
 
-static bool alg_diff_fast(ctx_dev *cam)
+bool cls_alg::diff_fast()
 {
     ctx_images *imgs = &cam->imgs;
     int i, curdiff, diffs = 0;
     int step = cam->imgs.motionsize / 10000;
     int noise = cam->noise;
-    int max_n_changes = cam->threshold / 2;
-    unsigned char *ref = imgs->ref;
-    unsigned char *new_img = cam->imgs.image_vprvcy;
+    int max_n_changes = cam->cfg->threshold / 2;
+    u_char *ref = imgs->ref;
+    u_char *new_img = cam->imgs.image_vprvcy;
 
     if (!step % 2) {
         step++;
@@ -884,240 +873,96 @@ static bool alg_diff_fast(ctx_dev *cam)
     return false;
 }
 
-static void alg_diff_standard(ctx_dev *cam)
+void cls_alg::diff_standard()
 {
-
-    if (cam->smartmask_speed == 0) {
+    if (cam->cfg->smart_mask_speed == 0) {
         if (cam->imgs.mask == NULL) {
-            alg_diff_nomask(cam);
+            diff_nomask();
         } else {
-            alg_diff_mask(cam);
+            diff_mask();
         }
     } else {
         if (cam->imgs.mask == NULL) {
-            alg_diff_smart(cam);
+            diff_smart();
         } else {
-            alg_diff_masksmart(cam);
+            diff_masksmart();
         }
     }
-
 }
 
-static void alg_lightswitch(ctx_dev *cam)
+void cls_alg::lightswitch()
 {
-
-    if (cam->conf->lightswitch_percent >= 1 && !cam->lost_connection) {
-        if (cam->current_image->diffs > (cam->imgs.motionsize * cam->conf->lightswitch_percent / 100)) {
-            
-            //check if already a MOTION was detected - no lightswitch in current MOTION
-            int motion = 0;
-            int indx;
-            for (indx = 0; indx < cam->conf->minimum_motion_frames; indx++) {
-                if (cam->imgs.image_ring[indx].flags & IMAGE_MOTION) {
-                    motion += 1;
-                }
-            }
+    if (cam->cfg->lightswitch_percent >= 1) {
+        if (cam->current_image->diffs > (cam->imgs.motionsize * cam->cfg->lightswitch_percent / 100)) {
             MOTPLS_LOG(INF, TYPE_ALL, NO_ERRNO, _("Lightswitch detected"));
-            if (motion <= 2){
-                MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO, _("Lightswitch detected and <= 2 IMAGE_MOTION"));
-            if (cam->frame_skip < (unsigned int)cam->conf->lightswitch_frames) {
-                cam->frame_skip = (unsigned int)cam->conf->lightswitch_frames;
+            if (cam->frame_skip < cam->cfg->lightswitch_frames) {
+                cam->frame_skip = cam->cfg->lightswitch_frames;
             }
                 event(cam, EVENT_LIGHTSWITCH);
             cam->current_image->diffs = 0;
-            alg_update_reference_frame(cam, RESET_REF_FRAME);
-            }
+            ref_frame_update();
         }
     }
 }
 
-/**
- * alg_update_reference_frame
- *
- *   Called from 'motion_loop' to calculate the reference frame
- *   Moving objects are excluded from the reference frame for a certain
- *   amount of time to improve detection.
- *
- * Parameters:
- *
- *   cam    - current thread's context
- *   action - UPDATE_REF_FRAME or RESET_REF_FRAME
- *
- */
-void alg_update_reference_frame0(ctx_dev *cam, int action)
+void cls_alg::ref_frame_update()
 {
-    int accept_timer = cam->lastrate * cam->conf->static_object_time;
+    int accept_timer;
     int i, threshold_ref;
     int *ref_dyn = cam->imgs.ref_dyn;
-    int noise = (cam->noise) ;
-    unsigned char *image_virgin = cam->imgs.image_vprvcy;
-    unsigned char *ref = cam->imgs.ref;
-    unsigned char *smartmask = cam->imgs.smartmask_final;
-    unsigned char *mask = cam->imgs.mask;
-    unsigned char *out = cam->imgs.image_motion.image_norm;
+    u_char *image_virgin = cam->imgs.image_vprvcy;
+    u_char *ref = cam->imgs.ref;
+    u_char *mask_final = smartmask_final;
+    u_char *out = cam->imgs.image_motion.image_norm;
 
-    if (cam->lastrate > 5) {
-        /* Match rate limit */
-        accept_timer /= (cam->lastrate / 3);
-    }
-    accept_timer = cam->conf->static_object_time * 3;
-    if (!cam->detecting_motion) {
-        accept_timer = (int)(accept_timer * 0.8);
-    }
+    accept_timer = cam->cfg->static_object_time * cam->cfg->framerate;
+    threshold_ref = cam->noise * EXCLUDE_LEVEL_PERCENT / 100;
 
-    else if (action == UPDATE_REF_FRAME) { /* Black&white only for better performance. */
-        threshold_ref = cam->noise * EXCLUDE_LEVEL_PERCENT / 100;
-
-        for (i = cam->imgs.motionsize; i > 0; i--) {
-            /* Exclude pixels from ref frame well below noise level. */
-            if (*mask) {
-            if (((int)(abs(*ref - *image_virgin)) > threshold_ref) && (*smartmask) ) {
-                if (false) {   //(*ref_dyn == 0) { /* Always give new pixels a chance. */
-                    *ref_dyn = 1;
-                } else if (*ref_dyn > accept_timer) { /* Include static Object after some time. */
-                    //*ref_dyn = 0;
-                    if ((*ref_dyn) > 0) {(*ref_dyn)--;(*ref_dyn)--;}
-                    *ref = *image_virgin;
-                } else if ((int)(abs((int) *ref - (int) *image_virgin)) > noise) {  //(*out) {
-                    (*ref_dyn)++; /* Motionpixel? Keep excluding from ref frame. */
-
-                } else {
-                    //*ref_dyn = 0; /* Nothing special - release pixel. */
-                    //Not longer as accet time diffrent and not this time diffrent
-                    if ((*ref_dyn) > 0) {(*ref_dyn)--;(*ref_dyn)--;}
-                    //*ref = (unsigned char)((*ref + *image_virgin) / 2);
-                    if (cam->shots_mt == 0){                                                                 
-                        *ref = (unsigned char)( (((int) *ref) * 3 + (int) *image_virgin) / 4); 
-                    }
-                }
-
-            } else {  /* No motion: copy to ref frame. */
-                //*ref_dyn = 0; /* Reset pixel */
+    for (i = cam->imgs.motionsize; i > 0; i--) {
+        /* Exclude pixels from ref frame well below noise level. */
+        if (((int)(abs(*ref - *image_virgin)) > threshold_ref) && (*mask_final)) {
+            if (*ref_dyn == 0) { /* Always give new pixels a chance. */
+                *ref_dyn = 1;
+            } else if (*ref_dyn > accept_timer) { /* Include static Object after some time. */
+                *ref_dyn = 0;
                 *ref = *image_virgin;
-                if ((*ref_dyn) > 0) {(*ref_dyn)--;(*ref_dyn)--;}
-                // check for cam->current_image->diffs
+            } else if (*out) {
+                (*ref_dyn)++; /* Motionpixel? Keep excluding from ref frame. */
+            } else {
+                *ref_dyn = 0; /* Nothing special - release pixel. */
+                *ref = (u_char)((*ref + *image_virgin) / 2);
             }
-            }
-            ref++;
-            image_virgin++;
-            smartmask++;
-            mask++;
-            ref_dyn++;
-            out++;
-        } /* end for i */
+        } else {  /* No motion: copy to ref frame. */
+            *ref_dyn = 0; /* Reset pixel */
+            *ref = *image_virgin;
+        }
 
-    } else {   /* action == RESET_REF_FRAME - also used to initialize the frame at startup. */
-        /* Copy fresh image */
-        memcpy(cam->imgs.ref, cam->imgs.image_vprvcy, cam->imgs.size_norm);
-        /* Reset static objects */
-        memset(cam->imgs.ref_dyn, 0, cam->imgs.motionsize * sizeof(*cam->imgs.ref_dyn)); //accept_timer * 0.6
+        ref++;
+        image_virgin++;
+        mask_final++;
+        ref_dyn++;
+        out++;
     }
+
 }
 
-void alg_update_reference_frame(ctx_dev *cam, int action)
+void cls_alg::ref_frame_reset()
 {
-    int accept_timer = 3 * cam->conf->static_object_time;
-    int i, accept_counter = 0, accept_counter_sum = 0, accept_counter_sum_all = 0, accept_counter_all = 0;
-    int indx, motionframes = 0;
-    int *ref_dyn = cam->imgs.ref_dyn;
-    bool onlytwomotionframes = false;
-    //int noise = (cam->noise) ;
-    unsigned char *image_virgin = cam->imgs.image_vprvcy;
-    unsigned char *ref = cam->imgs.ref;
-    unsigned char *smartmask = cam->imgs.smartmask_final;
-    unsigned char *mask = cam->imgs.mask;
-    unsigned char *motion = cam->imgs.image_motion.image_norm;
-
-
-    if (action == UPDATE_REF_FRAME) { /* Black&white only for better performance. */
-        //threshold_ref = cam->noise * EXCLUDE_LEVEL_PERCENT / 100;
-
-        if (!cam->detecting_motion){
-            for (indx = 0; indx < cam->conf->minimum_motion_frames; indx++) {
-                if (cam->imgs.image_ring[indx].flags & IMAGE_MOTION) {
-                    motionframes += 1;
-                }
-            }
-        }
-        onlytwomotionframes = ( (!cam->detecting_motion) && (motionframes <= 1) );
-        for (i = cam->imgs.motionsize; i > 0; i--) {
-            if ((*mask) && (*smartmask) ){
-                if (abs(*ref - *image_virgin) > (cam->noise * 0.6)){ //diff > noise
-                    (*ref_dyn)++;
-                    accept_counter++;
-                    accept_counter_sum += (*ref_dyn);
-                    accept_counter_sum_all += (*ref_dyn);
-                    accept_counter_all++;
-                    if (onlytwomotionframes) {
-                        //high accept timer
-                        (*ref_dyn) = accept_timer ; 
-                    }
-                    if (*ref_dyn > accept_timer) {
-                        *ref = *image_virgin;
-                        (*ref_dyn)--;
-                    }
-                    // if (cam->current_image->diffs == 0   ){
-                    //     MOTPLS_LOG(INF, TYPE_ALL, NO_ERRNO, "motion at diff 0");
-                    // }
-                } else {
-                    //diff<noise
-                    // if ( ((*ref_dyn) > accept_timer/2) || 
-                    //     (((cam->current_image->diffs )>cam->threshold) && ((*ref_dyn) > 0)))  {
-                    //         (*ref_dyn)--;
-                    //     }
-                    // if ( (*ref_dyn) < accept_timer/2)   {
-                    //         (*ref_dyn)++;
-                    //     }
-                    if ( (*ref_dyn) > 0)   {
-                        (*ref_dyn)--;
-                    }    
-                    if (cam->shots_mt == 0){                                                                 
-                        *ref = (unsigned char)( (((int) *ref) * 3 + (int) *image_virgin) / 4); 
-                    }
-                    accept_counter_sum_all += (*ref_dyn);
-                    accept_counter_all++;
-                }
-            }//mask
-            ref++;
-            image_virgin++;
-            smartmask++;
-            mask++;
-            ref_dyn++;
-            motion++;
-        } /* end for i */
-        if (accept_counter==0){accept_counter=1;}
-        cam->current_image->accept_average = accept_counter_sum / accept_counter;
-        //cam->current_image->accept_average = accept_counter_sum_all / accept_counter_all;
-
-    } else {   /* action == RESET_REF_FRAME - also used to initialize the frame at startup. */
-        /* Copy fresh image */
-        memcpy(cam->imgs.ref, cam->imgs.image_vprvcy, cam->imgs.size_norm);
-        /* Reset static objects */
-        //memset(cam->imgs.ref_dyn, accept_timer * 0.5, cam->imgs.motionsize * sizeof(*cam->imgs.ref_dyn)); //accept_timer * 0.6
-        ref_dyn = cam->imgs.ref_dyn;
-        for (i = cam->imgs.motionsize; i > 0; i--) {
-            (*ref_dyn) = 0 ;
-            ref_dyn++;
-        }
-    }
-}
-
-/*Copy in new reference frame*/
-void alg_new_update_frame(ctx_dev *cam)
-{
-
-    /* There used to be a lot more to this function before.....*/
-    memcpy(cam->imgs.ref, cam->imgs.image_vprvcy, cam->imgs.size_norm);
+    /* Copy fresh image */
+    memcpy(cam->imgs.ref, cam->imgs.image_vprvcy, (uint)cam->imgs.size_norm);
+    /* Reset static objects */
+    memset(cam->imgs.ref_dyn, 0
+        ,(uint)cam->imgs.motionsize * sizeof(*cam->imgs.ref_dyn));
 
 }
 
 /*Calculate the center location of changes*/
-static void alg_location_center(ctx_dev *cam)
+void cls_alg::location_center()
 {
     int width = cam->imgs.width;
     int height = cam->imgs.height;
     ctx_coord *cent = &cam->current_image->location;
-    unsigned char *out = cam->imgs.image_motion.image_norm;
+    u_char *out = cam->imgs.image_motion.image_norm;
     int x, y, centc = 0;
 
     cent->x = 0;
@@ -1155,21 +1000,16 @@ static void alg_location_center(ctx_dev *cam)
 }
 
 /*Calculate distribution and variances of changes*/
-static void alg_location_dist(ctx_dev *cam)
+void cls_alg::location_dist_stddev()
 {
     ctx_images *imgs = &cam->imgs;
     int width = cam->imgs.width;
     int height = cam->imgs.height;
     ctx_coord *cent = &cam->current_image->location;
-    unsigned char *out = imgs->image_motion.image_norm;
+    u_char *out = imgs->image_motion.image_norm;
     int x, y, centc = 0, xdist = 0, ydist = 0;
-    uint64_t variance_x, variance_y, variance_xy, distance_mean;
+    int64_t variance_x, variance_y, variance_xy, distance_mean;
 
-    /* Note that the term variance refers to the statistical calulation.  It is
-     * not really precise however since we are using integers rather than floats.
-     * This is done to improve performance over the statistically correct
-     * calculation for mean and variance
-     */
     cent->maxx = 0;
     cent->maxy = 0;
     cent->minx = width;
@@ -1183,7 +1023,7 @@ static void alg_location_dist(ctx_dev *cam)
             if (*(out++)) {
                 variance_x += ((x - cent->x) * (x - cent->x));
                 variance_y += ((y - cent->y) * (y - cent->y));
-                distance_mean += (uint64_t)sqrt(
+                distance_mean += (int64_t)sqrt(
                         ((x - cent->x) * (x - cent->x)) +
                         ((y - cent->y) * (y - cent->y)));
 
@@ -1211,7 +1051,7 @@ static void alg_location_dist(ctx_dev *cam)
         cent->maxy = cent->y + ydist / centc * 3;
         cent->stddev_x = (int)sqrt((variance_x / centc));
         cent->stddev_y = (int)sqrt((variance_y / centc));
-        distance_mean = (uint64_t)(distance_mean / centc);
+        distance_mean = (int64_t)(distance_mean / centc);
     } else {
         cent->stddev_y = 0;
         cent->stddev_x = 0;
@@ -1224,9 +1064,9 @@ static void alg_location_dist(ctx_dev *cam)
         for (x = 0; x < width; x++) {
             if (*(out++)) {
                 variance_xy += (
-                    ((uint64_t)sqrt(((x - cent->x) * (x - cent->x)) +
+                    ((int64_t)sqrt(((x - cent->x) * (x - cent->x)) +
                           ((y - cent->y) * (y - cent->y))) - distance_mean) *
-                    ((uint64_t)sqrt(((x - cent->x) * (x - cent->x)) +
+                    ((int64_t)sqrt(((x - cent->x) * (x - cent->x)) +
                           ((y - cent->y) * (y - cent->y))) - distance_mean));
             }
         }
@@ -1237,8 +1077,53 @@ static void alg_location_dist(ctx_dev *cam)
     }
 }
 
+void cls_alg::location_dist_basic()
+{
+    ctx_images *imgs = &cam->imgs;
+    int width = cam->imgs.width;
+    int height = cam->imgs.height;
+    ctx_coord *cent = &cam->current_image->location;
+    u_char *out = imgs->image_motion.image_norm;
+    int x, y, centc = 0, xdist = 0, ydist = 0;
+
+    cent->maxx = 0;
+    cent->maxy = 0;
+    cent->minx = width;
+    cent->miny = height;
+
+    for (y = 0; y < height; y++) {
+        for (x = 0; x < width; x++) {
+            if (*(out++)) {
+                if (x > cent->x) {
+                    xdist += x - cent->x;
+                } else if (x < cent->x) {
+                    xdist += cent->x - x;
+                }
+
+                if (y > cent->y) {
+                    ydist += y - cent->y;
+                } else if (y < cent->y) {
+                    ydist += cent->y - y;
+                }
+
+                centc++;
+            }
+        }
+    }
+
+    if (centc) {
+        cent->minx = cent->x - xdist / centc * 3;
+        cent->maxx = cent->x + xdist / centc * 3;
+        cent->miny = cent->y - ydist / centc * 3;
+        cent->maxy = cent->y + ydist / centc * 3;
+    } else {
+        cent->stddev_y = 0;
+        cent->stddev_x = 0;
+    }
+}
+
 /* Ensure min/max are within limits*/
-static void alg_location_minmax(ctx_dev *cam)
+void cls_alg::location_minmax()
 {
 
     int width = cam->imgs.width;
@@ -1281,72 +1166,91 @@ static void alg_location_minmax(ctx_dev *cam)
 }
 
 /* Determine the location and standard deviations of changes*/
-void alg_location(ctx_dev *cam)
+void cls_alg::location()
 {
-
-    alg_location_center(cam);
-
-    alg_location_dist(cam);
-
-    alg_location_minmax(cam);
+    location_center();
+    if (calc_stddev) {
+        location_dist_stddev();
+    } else {
+        location_dist_basic();
+    }
+    location_minmax();
 }
 
 /* Apply user or default thresholds on standard deviations*/
-void alg_stddev(ctx_dev *cam)
+void cls_alg::stddev()
 {
-
-    /*
-    MOTPLS_LOG(DBG, TYPE_ALL, NO_ERRNO, "dev_x %d dev_y %d dev_xy %d, diff %d ratio %d"
-        , cam->current_image->location.stddev_x
-        , cam->current_image->location.stddev_y
-        , cam->current_image->location.stddev_xy
-        , cam->current_image->diffs
-        , cam->current_image->diffs_ratio);
-    */
-   double sdev_x_scale = cam->imgs.width / 1000.0;
-   double sdev_y_scale = cam->imgs.height / 1000.0;
-   double sdev_xy_scale = cam->imgs.width * cam->imgs.height / 1000000.0;
-
-    if (cam->conf->threshold_sdevx > 0) {
-        if (cam->current_image->location.stddev_x > (float) cam->conf->threshold_sdevx * sdev_x_scale) {
+    if (calc_stddev == false) {
+        return;
+    }
+    if (cam->cfg->threshold_sdevx > 0) {
+        if (cam->current_image->location.stddev_x > cam->cfg->threshold_sdevx) {
             cam->current_image->diffs = 0;
             return;
         }
-    } else if (cam->conf->threshold_sdevy > 0) {
-        if (cam->current_image->location.stddev_y > (float) cam->conf->threshold_sdevy * sdev_y_scale) {
+    } else if (cam->cfg->threshold_sdevy > 0) {
+        if (cam->current_image->location.stddev_y > cam->cfg->threshold_sdevy) {
             cam->current_image->diffs = 0;
             return;
         }
-    } else if (cam->conf->threshold_sdevxy > 0) {
-        if (cam->current_image->location.stddev_xy > (float) cam->conf->threshold_sdevxy * sdev_xy_scale) {
+    } else if (cam->cfg->threshold_sdevxy > 0) {
+        if (cam->current_image->location.stddev_xy > cam->cfg->threshold_sdevxy) {
             cam->current_image->diffs = 0;
             return;
         }
     }
-
-    return;
-
 }
 
-void alg_diff(ctx_dev *cam)
+void cls_alg::diff()
 {
-
-    if (cam->detecting_motion || cam->motapp->conf->setup_mode) {
-        alg_diff_standard(cam);
+    if (cam->detecting_motion) {
+        diff_standard();
     } else {
-        if (alg_diff_fast(cam)) {
-            alg_diff_standard(cam);
+        if (diff_fast()) {
+            diff_standard();
         } else {
             cam->current_image->diffs = 0;
             cam->current_image->diffs_raw = 0;
             cam->current_image->diffs_ratio = 100;
         }
     }
+    lightswitch();
+    despeckle();
+}
 
-    alg_lightswitch(cam);
+cls_alg::cls_alg(cls_camera *p_cam)
+{
+    int i;
 
-    alg_despeckle(cam);
+    cam = p_cam;
 
-    return;
+    if ((cam->cfg->threshold_sdevx == 0) &&
+        (cam->cfg->threshold_sdevy == 0) &&
+        (cam->cfg->threshold_sdevxy == 0)) {
+        calc_stddev = false;
+    } else {
+        calc_stddev = true;
+    }
+
+    smartmask =(unsigned char*) mymalloc((uint)cam->imgs.motionsize);
+    smartmask_final =(unsigned char*) mymalloc((uint)cam->imgs.motionsize);
+    smartmask_buffer =(int*) mymalloc((uint)cam->imgs.motionsize * sizeof(*smartmask_buffer));
+
+    memset(smartmask, 0, (uint)cam->imgs.motionsize);
+    memset(smartmask_final, 255, (uint)cam->imgs.motionsize);
+    memset(smartmask_buffer, 0, (uint)cam->imgs.motionsize * sizeof(*smartmask_buffer));
+
+    for (i = 0; i < THRESHOLD_TUNE_LENGTH - 1; i++) {
+        diffs_last[i] = 0;
+    }
 
 }
+
+cls_alg::~cls_alg()
+{
+    myfree(smartmask);
+    myfree(smartmask_final);
+    myfree(smartmask_buffer);
+
+}
+

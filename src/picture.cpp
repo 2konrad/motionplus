@@ -16,33 +16,183 @@
  *
  */
 #include "motionplus.hpp"
+#include "util.hpp"
+#include "camera.hpp"
 #include "conf.hpp"
 #include "logger.hpp"
-#include "util.hpp"
 #include "picture.hpp"
 #include "jpegutils.hpp"
-#include "event.hpp"
-#include "exif.hpp"
 #include "draw.hpp"
-
-#ifdef HAVE_WEBP
-    #include <webp/encode.h>
-    #include <webp/mux.h>
-#endif /* HAVE_WEBP */
+#include "dbse.hpp"
+#include "picture.hpp"
 
 
-
-#ifdef HAVE_WEBP
-/*
- * pic_webp_exif writes the EXIF APP1 chunk to the webp file.
- * It must be called after WebPEncode() and the result
- * can then be written out to webp a file
- */
-static void pic_webp_exif(WebPMux* webp_mux, ctx_dev *cam,
-        const struct timespec *ts1, ctx_coord *box)
+void cls_picture::picname(char* fullname, std::string fmtstr
+    , std::string basename, std::string extname)
 {
-    unsigned char *exif = NULL;
-    unsigned exif_len = exif_prepare(&exif, cam, ts1, box);
+    char filename[PATH_MAX];
+    int  retcd;
+
+    mystrftime(cam, filename, sizeof(filename)
+        , basename.c_str(), NULL);
+    retcd = snprintf(fullname, PATH_MAX, fmtstr.c_str()
+        , cam->cfg->target_dir.c_str(), filename, extname.c_str());
+    if ((retcd < 0) || (retcd >= PATH_MAX)) {
+        MOTPLS_LOG(ERR, TYPE_EVENTS, NO_ERRNO
+            ,_("Error creating picture file name"));
+        return;
+    }
+    full_nm = fullname;
+    file_dir =full_nm.substr(0,full_nm.find_last_of("/"));
+    file_nm = full_nm.substr(file_dir.length()+1);
+
+}
+
+void cls_picture::on_picture_save_command(char *fname)
+{
+    MOTPLS_LOG(NTC, TYPE_EVENTS, NO_ERRNO, _("File saved to: %s"), fname);
+
+    if (cam->cfg->on_picture_save != "") {
+        util_exec_command(cam, cam->cfg->on_picture_save.c_str(), fname);
+    }
+}
+
+void cls_picture::process_norm()
+{
+    char filename[PATH_MAX];
+
+    if (cam->cfg->picture_output == "on") {
+        picname(filename,"%s/%s.%s"
+            , cam->cfg->picture_filename
+            , cam->cfg->picture_type);
+        if ((cam->imgs.size_high > 0) && (cam->movie_passthrough == false)) {
+            save_norm(filename, cam->current_image->image_high);
+        } else {
+            save_norm(filename,cam->current_image->image_norm);
+        }
+        on_picture_save_command(filename);
+        cam->app->dbse->exec(cam, filename, "pic_save");
+        cam->app->dbse->filelist_add(cam, &cam->current_image->imgts
+            ,"pic", file_nm, full_nm, file_dir);
+    }
+}
+
+void cls_picture::process_motion()
+{
+    char filename[PATH_MAX];
+
+    if (cam->cfg->picture_output_motion == "on") {
+        picname(filename,"%s/%sm.%s", cam->cfg->picture_filename, cam->cfg->picture_type);
+        save_norm(filename, cam->imgs.image_motion.image_norm);
+        on_picture_save_command(filename);
+        cam->app->dbse->exec(cam, filename, "pic_save");
+        cam->app->dbse->filelist_add(cam, &cam->imgs.image_motion.imgts
+            ,"pic", file_nm, full_nm, file_dir);
+
+
+    } else if (cam->cfg->picture_output_motion == "roi") {
+        picname(filename,"%s/%sr.%s", cam->cfg->picture_filename, cam->cfg->picture_type);
+        save_roi(filename, cam->current_image->image_norm);
+        on_picture_save_command(filename);
+        cam->app->dbse->exec(cam, filename, "pic_save");
+        cam->app->dbse->filelist_add(cam, &cam->current_image->imgts
+            ,"pic", file_nm, full_nm, file_dir);
+
+    }
+}
+
+void cls_picture::process_snapshot()
+{
+    char filename[PATH_MAX];
+    char linkpath[PATH_MAX];
+    int offset;
+
+    offset = (int)cam->cfg->snapshot_filename.length() - 8;
+    if (offset < 0) {
+        offset = 1;
+    }
+
+    if (cam->cfg->snapshot_filename.compare((uint)offset, 8, "lastsnap") != 0) {
+        picname(filename,"%s/%s.%s"
+            , cam->cfg->snapshot_filename
+            , cam->cfg->picture_type);
+        if ((cam->imgs.size_high > 0) && (cam->movie_passthrough == false)) {
+            save_norm(filename, cam->current_image->image_high);
+        } else {
+            save_norm(filename, cam->current_image->image_norm);
+        }
+        on_picture_save_command(filename);
+        cam->app->dbse->exec(cam, filename, "pic_save");
+        cam->app->dbse->filelist_add(cam, &cam->current_image->imgts
+            ,"pic", file_nm, full_nm, file_dir);
+
+        /* Update symbolic link */
+        picname(linkpath,"%s/%s.%s"
+            , "lastsnap", cam->cfg->picture_type);
+        remove(linkpath);
+        if (symlink(filename, linkpath)) {
+            MOTPLS_LOG(ERR, TYPE_EVENTS, SHOW_ERRNO
+                ,_("Could not create symbolic link [%s]"), filename);
+            return;
+        }
+
+    } else {
+        picname(filename,"%s/%s.%s"
+            , cam->cfg->snapshot_filename
+            , cam->cfg->picture_type);
+        remove(filename);
+        if ((cam->imgs.size_high > 0) && (cam->movie_passthrough == false)) {
+            save_norm(filename, cam->current_image->image_high);
+        } else {
+            save_norm(filename, cam->current_image->image_norm);
+        }
+        on_picture_save_command(filename);
+        cam->app->dbse->exec(cam, filename, "pic_save");
+        cam->app->dbse->filelist_add(cam, &cam->current_image->imgts
+            ,"pic", file_nm, full_nm, file_dir);
+    }
+
+    cam->action_snapshot = false;
+}
+
+void cls_picture::process_preview()
+{
+    char filename[PATH_MAX];
+    ctx_image_data *saved_current_image;
+
+    if (cam->imgs.image_preview.diffs) {
+        saved_current_image = cam->current_image;
+        saved_current_image->imgts= cam->current_image->imgts;
+
+        cam->current_image = &cam->imgs.image_preview;
+        cam->current_image->imgts = cam->imgs.image_preview.imgts;
+
+        picname(filename,"%s/%s.%s"
+            , cam->cfg->picture_filename
+            , cam->cfg->picture_type);
+
+        if ((cam->imgs.size_high > 0) && (cam->movie_passthrough == false)) {
+            save_norm(filename, cam->imgs.image_preview.image_high);
+        } else {
+            save_norm(filename, cam->imgs.image_preview.image_norm);
+        }
+        on_picture_save_command(filename);
+        cam->app->dbse->exec(cam, filename, "pic_save");
+        cam->app->dbse->filelist_add(cam, &cam->imgs.image_preview.imgts
+            ,"pic", file_nm, full_nm, file_dir);
+
+        /* Restore global context values. */
+        cam->current_image = saved_current_image;
+        cam->current_image->imgts = saved_current_image->imgts;
+    }
+}
+
+#ifdef HAVE_WEBP
+void cls_picture::webp_exif(WebPMux* webp_mux
+        , timespec *ts1, ctx_coord *box)
+{
+    u_char *exif = NULL;
+        uint exif_len = jpgutl_exif(&exif, cam, ts1, box);
 
     if(exif_len > 0) {
         WebPData webp_exif;
@@ -60,16 +210,15 @@ static void pic_webp_exif(WebPMux* webp_mux, ctx_dev *cam,
 }
 #endif /* HAVE_WEBP */
 
-
-
 /** Save image as webp to file */
-static void pic_save_webp(FILE *fp, unsigned char *image, int width, int height,
-        int quality, ctx_dev *cam, struct timespec *ts1, ctx_coord *box)
+void cls_picture::save_webp(FILE *fp, u_char *image, int width, int height
+        , timespec *ts1, ctx_coord *box)
 {
     #ifdef HAVE_WEBP
         /* Create a config present and check for compatible library version */
         WebPConfig webp_config;
-        if (!WebPConfigPreset(&webp_config, WEBP_PRESET_DEFAULT, (float) quality)) {
+        if (!WebPConfigPreset(&webp_config, WEBP_PRESET_DEFAULT
+            , (float) cam->cfg->picture_quality)) {
             MOTPLS_LOG(ERR, TYPE_CORE, NO_ERRNO, _("libwebp version error"));
             return;
         }
@@ -111,7 +260,7 @@ static void pic_save_webp(FILE *fp, unsigned char *image, int width, int height,
 
         /* Create a mux from the prepared image data */
         WebPMux* webp_mux = WebPMuxCreate(&webp_bitstream, 1);
-        pic_webp_exif(webp_mux, cam, ts1, box);
+        webp_exif(webp_mux, ts1, box);
 
         /* Add Exif data to the webp image data */
         WebPData webp_output;
@@ -144,57 +293,55 @@ static void pic_save_webp(FILE *fp, unsigned char *image, int width, int height,
         (void)image;
         (void)width;
         (void)height;
-        (void) quality;
-        (void)cam;
         (void)ts1;
         (void)box;
     #endif /* HAVE_WEBP */
 }
 
-
 /** Save image as yuv420p jpeg to file */
-static void pic_save_yuv420p(FILE *fp, unsigned char *image, int width, int height,
-        int quality, ctx_dev *cam, struct timespec *ts1, ctx_coord *box)
+void cls_picture::save_yuv420p(FILE *fp, u_char *image, int width, int height
+        , timespec *ts1, ctx_coord *box)
 {
 
     int sz, image_size;
 
     image_size = (width * height * 3)/2;
-    unsigned char *buf =(unsigned char*) mymalloc(image_size);
+    u_char *buf =(u_char*) mymalloc((uint)image_size);
 
-    sz = jpgutl_put_yuv420p(buf, image_size, image, width, height, quality, cam ,ts1, box);
-    fwrite(buf, sz, 1, fp);
+    sz = jpgutl_put_yuv420p(buf, image_size, image, width, height
+        , cam->cfg->picture_quality, cam ,ts1, box);
+    fwrite(buf, (uint)sz, 1, fp);
 
     free(buf);
 
 }
 
 /** Save image as grey jpeg to file */
-static void pic_save_grey(FILE *picture, unsigned char *image, int width, int height,
-        int quality, ctx_dev *cam, struct timespec *ts1, ctx_coord *box)
+void cls_picture::save_grey(FILE *picture, u_char *image, int width, int height
+        , timespec *ts1, ctx_coord *box)
 {
-
     int sz, image_size;
 
     image_size = (width * height * 3)/2;
 
-    unsigned char *buf =(unsigned char*) mymalloc(image_size);
+    u_char *buf =(u_char*) mymalloc((uint)image_size);
 
-    sz = jpgutl_put_grey(buf, image_size, image, width, height, quality, cam ,ts1, box);
-    fwrite(buf, sz, 1, picture);
+    sz = jpgutl_put_grey(buf, image_size, image, width, height
+        , cam->cfg->picture_quality, cam ,ts1, box);
+    fwrite(buf, (uint)sz, 1, picture);
 
     free(buf);
 }
 
 /** Save image as greyscale ppm image to file */
-static void pic_save_ppm(FILE *picture, unsigned char *image, int width, int height)
+void cls_picture::save_ppm(FILE *picture, u_char *image, int width, int height)
 {
     int x, y;
-    unsigned char *l = image;
-    unsigned char *u = image + width * height;
-    unsigned char *v = u + (width * height) / 4;
+    u_char *l = image;
+    u_char *u = image + width * height;
+    u_char *v = u + (width * height) / 4;
     int r, g, b;
-    unsigned char rgb[3];
+    u_char rgb[3];
 
     /*
      *  ppm header
@@ -232,9 +379,9 @@ static void pic_save_ppm(FILE *picture, unsigned char *image, int width, int hei
                 b = 255;
             }
 
-            rgb[0] = (unsigned char)b;
-            rgb[1] = (unsigned char)g;
-            rgb[2] = (unsigned char)r;
+            rgb[0] = (u_char)b;
+            rgb[1] = (u_char)g;
+            rgb[2] = (u_char)r;
 
             l++;
             if (x%2 != 0) {
@@ -251,34 +398,31 @@ static void pic_save_ppm(FILE *picture, unsigned char *image, int width, int hei
     }
 }
 
-
 /** Put picture into memory as jpg */
-int pic_put_memory(ctx_dev *cam, unsigned char* dest_image, int image_size
-        , unsigned char *image, int quality, int width, int height)
+int cls_picture::put_memory(u_char *img_dst, int image_size
+        , u_char *image, int quality, int width, int height)
 {
     struct timespec ts1;
+    int retcd;
 
     clock_gettime(CLOCK_REALTIME, &ts1);
-    if (!cam->conf->stream_grey) {
-        return jpgutl_put_yuv420p(dest_image, image_size, image,
-                                width, height, quality, cam ,&ts1, NULL);
+    if (cam->cfg->stream_grey) {
+        retcd = jpgutl_put_grey(img_dst, image_size, image
+            , width, height, quality, cam, &ts1, NULL);
     } else {
-        return jpgutl_put_grey(dest_image, image_size, image,
-                                width, height, quality, cam,&ts1, NULL);
+        retcd = jpgutl_put_yuv420p(img_dst, image_size, image
+            , width, height, quality, cam, &ts1, NULL);
     }
 
-    return 0;
+    return retcd;
 }
 
 /* Write the picture to a file */
-static void pic_write(ctx_dev *cam, FILE *picture, unsigned char *image, int quality)
+void cls_picture::pic_write(FILE *picture, u_char *image)
 {
     int width, height;
-    int passthrough;
 
-    passthrough = mycheck_passthrough(cam);
-    if (((cam->filetype == FTYPE_IMAGE) || (cam->filetype == FTYPE_IMAGE_SNAPSHOT)) &&
-         (cam->imgs.size_high > 0) && (!passthrough)) {
+    if ((cam->imgs.size_high > 0) && (cam->movie_passthrough == false)) {
         width = cam->imgs.width_high;
         height = cam->imgs.height_high;
     } else {
@@ -286,55 +430,44 @@ static void pic_write(ctx_dev *cam, FILE *picture, unsigned char *image, int qua
         height = cam->imgs.height;
     }
 
-    if (cam->conf->picture_type == "ppm") {
-        pic_save_ppm(picture, image, width, height);
-    } else if (cam->conf->picture_type == "webp") {
-        pic_save_webp(picture, image, width, height, quality, cam
+    if (cam->cfg->picture_type == "ppm") {
+        save_ppm(picture, image, width, height);
+    } else if (cam->cfg->picture_type == "webp") {
+        save_webp(picture, image, width, height
             , &(cam->current_image->imgts), &(cam->current_image->location));
-    } else if (cam->conf->picture_type == "grey") {
-        pic_save_grey(picture, image, width, height, quality, cam
+    } else if (cam->cfg->picture_type == "grey") {
+        save_grey(picture, image, width, height
             , &(cam->current_image->imgts), &(cam->current_image->location));
     } else {
-        pic_save_yuv420p(picture, image, width, height, quality, cam
+        save_yuv420p(picture, image, width, height
             , &(cam->current_image->imgts), &(cam->current_image->location));
     }
 }
 
 /* Saves image to a file in format requested */
-void pic_save_norm(ctx_dev *cam, char *file, unsigned char *image)
+void cls_picture::save_norm(char *file, u_char *image)
 {
     FILE *picture;
 
     picture = myfopen(file, "wbe");
     if (!picture) {
-        /* Report to syslog - suggest solution if the problem is access rights to target dir. */
-        if (errno ==  EACCES) {
-            MOTPLS_LOG(ERR, TYPE_ALL, SHOW_ERRNO
-                ,_("Can't write picture to file %s - check access rights to target directory\n"
-                "Thread is going to finish due to this fatal error"), file);
-            cam->finish_dev = true;
-            cam->restart_dev = false;
-            return;
-        } else {
-            /* If target dir is temporarily unavailable we may survive. */
-            MOTPLS_LOG(ERR, TYPE_ALL, SHOW_ERRNO
-                ,_("Can't write picture to file %s"), file);
-            return;
-        }
+        MOTPLS_LOG(ERR, TYPE_ALL, SHOW_ERRNO
+            ,_("Can't write picture to file %s"), file);
+        return;
     }
 
-    pic_write(cam, picture, image, cam->conf->picture_quality);
+    pic_write(picture, image);
 
     myfclose(picture);
 }
 
 /* Saves image to a file in format requested */
-void pic_save_roi(ctx_dev *cam, char *file, unsigned char *image)
+void cls_picture::save_roi(char *file, u_char *image)
 {
     FILE *picture;
     int image_size, sz, indxh;
     ctx_coord *bx;
-    unsigned char *buf, *img;
+    u_char *buf, *img;
 
     bx = &cam->current_image->location;
 
@@ -351,19 +484,21 @@ void pic_save_roi(ctx_dev *cam, char *file, unsigned char *image)
 
     image_size = bx->width * bx->height;
 
-    buf =(unsigned char*) mymalloc(image_size);
-    img =(unsigned char*) mymalloc(image_size);
+    buf =(u_char*) mymalloc((uint)image_size);
+    img =(u_char*) mymalloc((uint)image_size);
 
     for (indxh=bx->miny; indxh< bx->miny + bx->height; indxh++){
-        memcpy(img+((indxh - bx->miny)* bx->width), image+(indxh*cam->imgs.width) + bx->minx, bx->width);
+        memcpy(img+((indxh - bx->miny)* bx->width)
+            , image+(indxh*cam->imgs.width) + bx->minx
+            , (uint)bx->width);
     }
 
     sz = jpgutl_put_grey(buf, image_size, img
         , bx->width, bx->height
-        ,cam->conf->picture_quality, cam
+        , cam->cfg->picture_quality, cam
         ,&(cam->current_image->imgts), bx);
 
-    fwrite(buf, sz, 1, picture);
+    fwrite(buf, (uint)sz, 1, picture);
 
     free(buf);
     free(img);
@@ -372,12 +507,11 @@ void pic_save_roi(ctx_dev *cam, char *file, unsigned char *image)
 }
 
 /** Get the pgm file used as fixed mask */
-unsigned char *pic_load_pgm(FILE *picture, int width, int height)
+u_char *cls_picture::load_pgm(FILE *picture, int width, int height)
 {
-
     int x, y, mask_width, mask_height, maxval;
     char line[256];
-    unsigned char *image, *resized_image;
+    u_char *image, *resized_image;
 
     line[255] = 0;
 
@@ -424,15 +558,15 @@ unsigned char *pic_load_pgm(FILE *picture, int width, int height)
     ** this image for masking privacy which needs the space for
     ** the cr / cb components
     */
-    image =(unsigned char*) mymalloc((mask_width * mask_height * 3) / 2);
+    image =(u_char*) mymalloc((uint)((mask_width * mask_height * 3) / 2));
 
     for (y = 0; y < mask_height; y++) {
-        if ((int)fread(&image[y * mask_width], 1, mask_width, picture) != mask_width) {
+        if ((int)fread(&image[y * mask_width], 1, (uint)mask_width, picture) != mask_width) {
             MOTPLS_LOG(ERR, TYPE_ALL, SHOW_ERRNO, "Failed reading image data from pgm file");
         }
 
         for (x = 0; x < mask_width; x++) {
-            image[y * mask_width + x] = (unsigned char)((int)image[y * mask_width + x] * 255 / maxval);
+            image[y * mask_width + x] = (u_char)((int)image[y * mask_width + x] * 255 / maxval);
         }
 
     }
@@ -445,7 +579,7 @@ unsigned char *pic_load_pgm(FILE *picture, int width, int height)
             ,_("Attempting to resize mask image from %dx%d to %dx%d")
             ,mask_width, mask_height, width, height);
 
-        resized_image =(unsigned char*) mymalloc((width * height * 3) / 2);
+        resized_image =(u_char*) mymalloc((uint)((width * height * 3) / 2));
 
         for (y = 0; y < height; y++) {
             for (x = 0; x < width; x++) {
@@ -462,8 +596,7 @@ unsigned char *pic_load_pgm(FILE *picture, int width, int height)
     return image;
 }
 
-/** Write out a base mask file if needed */
-static void pic_write_mask(ctx_dev *cam, const char *file)
+void cls_picture::write_mask(const char *file)
 {
     FILE *picture;
 
@@ -481,15 +614,15 @@ static void pic_write_mask(ctx_dev *cam, const char *file)
         }
         return;
     }
-    memset(cam->imgs.image_motion.image_norm, 255, cam->imgs.motionsize); /* Initialize to unset */
+    memset(cam->imgs.image_motion.image_norm, 255, (uint)cam->imgs.motionsize); /* Initialize to unset */
 
     /* Write pgm-header. */
     fprintf(picture, "P5\n");
-    fprintf(picture, "%d %d\n", cam->conf->width, cam->conf->height);
+    fprintf(picture, "%d %d\n", cam->cfg->width, cam->cfg->height);
     fprintf(picture, "%d\n", 255);
 
     /* Write pgm image data at once. */
-    if ((int)fwrite(cam->imgs.image_motion.image_norm, cam->conf->width, cam->conf->height, picture) != cam->conf->height) {
+    if ((int)fwrite(cam->imgs.image_motion.image_norm, (uint)cam->cfg->width, (uint)cam->cfg->height, picture) != cam->cfg->height) {
         MOTPLS_LOG(ERR, TYPE_ALL, SHOW_ERRNO
             ,_("Failed writing default mask as pgm file"));
         return;
@@ -499,10 +632,10 @@ static void pic_write_mask(ctx_dev *cam, const char *file)
 
     MOTPLS_LOG(ERR, TYPE_ALL, NO_ERRNO
         ,_("Creating empty mask %s\nPlease edit this file and "
-        "re-run motion to enable mask feature"), cam->conf->mask_file.c_str());
+        "re-run motion to enable mask feature"), cam->cfg->mask_file.c_str());
 }
 
-void pic_scale_img(int width_src, int height_src, unsigned char *img_src, unsigned char *img_dst)
+void cls_picture::scale_img(int width_src, int height_src, u_char *img_src, u_char *img_dst)
 {
 
     int i = 0, x, y;
@@ -520,9 +653,9 @@ void pic_scale_img(int width_src, int height_src, unsigned char *img_src, unsign
     return;
 }
 
-void pic_save_preview(ctx_dev *cam)
+void cls_picture::save_preview()
 {
-    unsigned char *image_norm, *image_high;
+    u_char *image_norm, *image_high;
 
     /* Save our pointers to our memory locations for images*/
     image_norm = cam->imgs.image_preview.image_norm;
@@ -537,10 +670,10 @@ void pic_save_preview(ctx_dev *cam)
 
     /* Copy the actual images for norm and high */
     memcpy(cam->imgs.image_preview.image_norm
-        , cam->current_image->image_norm, cam->imgs.size_norm);
+        , cam->current_image->image_norm, (uint)cam->imgs.size_norm);
     if (cam->imgs.size_high > 0) {
         memcpy(cam->imgs.image_preview.image_high
-            , cam->current_image->image_high, cam->imgs.size_high);
+            , cam->current_image->image_high, (uint)cam->imgs.size_high);
     }
 
     /*
@@ -551,18 +684,18 @@ void pic_save_preview(ctx_dev *cam)
         cam->imgs.image_preview.diffs = 1;
     }
 
-    draw_locate(cam);
+    cam->draw->locate();
 
 }
 
-void pic_init_privacy(ctx_dev *cam)
+void cls_picture::init_privacy()
 {
     int indxrow, indxcol;
     int start_cr, offset_cb, start_cb;
     int y_index, uv_index;
     int indx_img, indx_max;         /* Counter and max for norm/high */
     int indx_width, indx_height;
-    unsigned char *img_temp, *img_temp_uv;
+    u_char *img_temp, *img_temp_uv;
 
 
     FILE *picture;
@@ -573,32 +706,34 @@ void pic_init_privacy(ctx_dev *cam)
     cam->imgs.mask_privacy_high = NULL;
     cam->imgs.mask_privacy_high_uv = NULL;
 
-    if (cam->conf->mask_privacy != "") {
-        if ((picture = myfopen(cam->conf->mask_privacy.c_str(), "rbe"))) {
+    if (cam->cfg->mask_privacy != "") {
+        if ((picture = myfopen(cam->cfg->mask_privacy.c_str(), "rbe"))) {
             MOTPLS_LOG(INF, TYPE_ALL, NO_ERRNO, _("Opening privacy mask file"));
             /*
              * NOTE: The mask is expected to have the output dimensions. I.e., the mask
              * applies to the already rotated image, not the capture image. Thus, use
              * width and height from imgs.
              */
-            cam->imgs.mask_privacy = pic_load_pgm(picture, cam->imgs.width, cam->imgs.height);
+            cam->imgs.mask_privacy = load_pgm(picture, cam->imgs.width, cam->imgs.height);
 
             /* We only need the "or" mask for the U & V chrominance area.  */
-            cam->imgs.mask_privacy_uv =(unsigned char*) mymalloc((cam->imgs.height * cam->imgs.width) / 2);
+            cam->imgs.mask_privacy_uv =(u_char*) mymalloc((uint)
+                ((cam->imgs.height * cam->imgs.width) / 2));
             if (cam->imgs.size_high > 0) {
                 MOTPLS_LOG(INF, TYPE_ALL, NO_ERRNO
                     ,_("Opening high resolution privacy mask file"));
                 rewind(picture);
-                cam->imgs.mask_privacy_high = pic_load_pgm(picture, cam->imgs.width_high, cam->imgs.height_high);
-                cam->imgs.mask_privacy_high_uv =(unsigned char*) mymalloc((cam->imgs.height_high * cam->imgs.width_high) / 2);
+                cam->imgs.mask_privacy_high = load_pgm(picture, cam->imgs.width_high, cam->imgs.height_high);
+                cam->imgs.mask_privacy_high_uv =(u_char*) mymalloc((uint)
+                    ((cam->imgs.height_high * cam->imgs.width_high) / 2));
             }
 
             myfclose(picture);
         } else {
             MOTPLS_LOG(ERR, TYPE_ALL, SHOW_ERRNO
-                ,_("Error opening mask file %s"), cam->conf->mask_privacy.c_str());
+                ,_("Error opening mask file %s"), cam->cfg->mask_privacy.c_str());
             /* Try to write an empty mask file to make it easier for the user to edit it */
-            pic_write_mask(cam, cam->conf->mask_privacy.c_str() );
+            write_mask(cam->cfg->mask_privacy.c_str() );
         }
 
         if (!cam->imgs.mask_privacy) {
@@ -606,7 +741,7 @@ void pic_init_privacy(ctx_dev *cam)
                 ,_("Failed to read mask privacy image. Mask privacy feature disabled."));
         } else {
             MOTPLS_LOG(INF, TYPE_ALL, NO_ERRNO
-            ,_("Mask privacy file \"%s\" loaded."), cam->conf->mask_privacy.c_str());
+            ,_("Mask privacy file \"%s\" loaded."), cam->cfg->mask_privacy.c_str());
 
             indx_img = 1;
             if (cam->imgs.size_high > 0) {
@@ -664,30 +799,29 @@ void pic_init_privacy(ctx_dev *cam)
 
 }
 
-void pic_init_mask(ctx_dev *cam)
+void cls_picture::init_mask()
 {
-
     FILE *picture;
 
     /* Load the mask file if any */
-    if (cam->conf->mask_file != "") {
-        if ((picture = myfopen(cam->conf->mask_file.c_str(), "rbe"))) {
+    if (cam->cfg->mask_file != "") {
+        if ((picture = myfopen(cam->cfg->mask_file.c_str(), "rbe"))) {
             /*
              * NOTE: The mask is expected to have the output dimensions. I.e., the mask
              * applies to the already rotated image, not the capture image. Thus, use
              * width and height from imgs.
              */
-            cam->imgs.mask = pic_load_pgm(picture, cam->imgs.width, cam->imgs.height);
+            cam->imgs.mask = load_pgm(picture, cam->imgs.width, cam->imgs.height);
             myfclose(picture);
         } else {
             MOTPLS_LOG(ERR, TYPE_ALL, SHOW_ERRNO
                 ,_("Error opening mask file %s")
-                ,cam->conf->mask_file.c_str());
+                ,cam->cfg->mask_file.c_str());
             /*
              * Try to write an empty mask file to make it easier
              * for the user to edit it
              */
-            pic_write_mask(cam, cam->conf->mask_file.c_str());
+            write_mask(cam->cfg->mask_file.c_str());
         }
 
         if (!cam->imgs.mask) {
@@ -696,7 +830,7 @@ void pic_init_mask(ctx_dev *cam)
         } else {
             MOTPLS_LOG(INF, TYPE_ALL, NO_ERRNO
                 ,_("Maskfile \"%s\" loaded.")
-                ,cam->conf->mask_file.c_str());
+                ,cam->cfg->mask_file.c_str());
         }
     } else {
         //cam->imgs.mask = NULL;
@@ -706,3 +840,16 @@ void pic_init_mask(ctx_dev *cam)
 
     }
 }
+
+cls_picture::cls_picture(cls_camera *p_cam)
+{
+    cam = p_cam;
+    init_mask();
+    init_privacy();
+}
+
+cls_picture::~cls_picture()
+{
+
+}
+

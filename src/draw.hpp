@@ -16,20 +16,38 @@
  *
  */
 
-
 #ifndef _INCLUDE_DRAW_HPP_
 #define _INCLUDE_DRAW_HPP_
+    #define ASCII_MAX 127
+    #define NEWLINE "\\n"
 
-    int draw_text(unsigned char *image,
-              int width, int height,
-              int startx, int starty,
-              const char *text, int factor);
-    int draw_init_chars(void);
-    void draw_init_scale(ctx_dev *cam);
+    class cls_draw {
+        public:
+            cls_draw(cls_camera *p_cam);
+            ~cls_draw();
+            int text(u_char *image
+                , int width, int height, int startx, int starty
+                , const char *text, int factor);
+            void locate();
+            void smartmask();
+            void fixed_mask();
+            void largest_label();
 
-    void draw_locate(ctx_dev *cam);
-    void draw_smartmask(ctx_dev *cam, unsigned char *out);
-    void draw_fixed_mask(ctx_dev *cam, unsigned char *out);
-    void draw_largest_label(ctx_dev *cam, unsigned char *out);
+        private:
+            cls_camera *cam;
+
+            u_char *char_arr_ptr[ASCII_MAX];
+
+            int textn(u_char *image
+                , int startx,  int starty,  int width
+                , const char *text, int len, int factor);
+            void init_chars(void);
+            void init_scale();
+            void location(ctx_coord *cent
+                , ctx_images *imgs, int width, u_char *new_var);
+            void red_location(ctx_coord *cent
+                , ctx_images *imgs, int width, u_char *new_var);
+
+    };
 
 #endif /* _INCLUDE_DRAW_HPP_ */

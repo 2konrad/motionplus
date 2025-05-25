@@ -16,9 +16,10 @@
  *
  */
 #include "motionplus.hpp"
+#include "util.hpp"
+#include "camera.hpp"
 #include "conf.hpp"
 #include "logger.hpp"
-#include "util.hpp"
 #include "video_loopback.hpp"
 
 #if (defined(HAVE_V4L2)) && (!defined(BSD))
@@ -204,11 +205,11 @@ int vlp_startpipe(const char *dev_name, int width, int height)
     vlp_show_vfmt(&v);
 
     v.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
-    v.fmt.pix.width = width;
-    v.fmt.pix.height = height;
+    v.fmt.pix.width = (uint)width;
+    v.fmt.pix.height = (uint)height;
     v.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
-    v.fmt.pix.sizeimage = 3 * width * height / 2;
-    v.fmt.pix.bytesperline = width;
+    v.fmt.pix.sizeimage =(uint)(3 * width * height / 2);
+    v.fmt.pix.bytesperline = (uint)width;
     v.fmt.pix.field = V4L2_FIELD_NONE;
     v.fmt.pix.colorspace = V4L2_COLORSPACE_SRGB;
     MOTPLS_LOG(INF, TYPE_VIDEO, NO_ERRNO,_("Proposed pipe specifications"));
@@ -227,30 +228,44 @@ int vlp_startpipe(const char *dev_name, int width, int height)
 
 #endif /* HAVE_V4L2 && !BSD */
 
-int vlp_putpipe(int dev, unsigned char *image, int imgsize)
+void vlp_putpipe(cls_camera *cam)
 {
-
     #if (defined(HAVE_V4L2)) && (!defined(BSD))
-        return (int)write(dev, image, imgsize);
+        ssize_t retcd;
+
+        if (cam->pipe >= 0) {
+            retcd = write(cam->pipe
+                , cam->current_image->image_norm
+                , (uint)cam->imgs.size_norm);
+            if (retcd < 0) {
+                MOTPLS_LOG(ERR, TYPE_EVENTS, SHOW_ERRNO
+                    ,_("Failed to put image into video pipe"));
+            }
+        }
+        if (cam->mpipe >= 0) {
+            retcd = write(cam->mpipe
+                , cam->imgs.image_motion.image_norm
+                , (uint)cam->imgs.size_norm);
+            if (retcd < 0) {
+                MOTPLS_LOG(ERR, TYPE_EVENTS, SHOW_ERRNO
+                    ,_("Failed to put image into motion video pipe"));
+            }
+        }
     #else
-        (void)dev;
-        (void)image;
-        (void)imgsize;
-        return -1;
+        (void)cam;
     #endif
 }
 
-void vlp_init(ctx_dev *cam)
+void vlp_init(cls_camera *cam)
 {
-
     #if defined(HAVE_V4L2) && !defined(BSD)
         /* open video loopback devices if enabled */
-        if (cam->conf->video_pipe != "") {
+        if (cam->cfg->video_pipe != "") {
             MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO
                 ,_("Opening video loopback device for normal pictures"));
 
             /* vid_startpipe should get the output dimensions */
-            cam->pipe = vlp_startpipe(cam->conf->video_pipe.c_str(), cam->imgs.width, cam->imgs.height);
+            cam->pipe = vlp_startpipe(cam->cfg->video_pipe.c_str(), cam->imgs.width, cam->imgs.height);
 
             if (cam->pipe < 0) {
                 MOTPLS_LOG(ERR, TYPE_ALL, NO_ERRNO
@@ -261,12 +276,12 @@ void vlp_init(ctx_dev *cam)
             cam->pipe = -1;
         }
 
-        if (cam->conf->video_pipe_motion != "") {
+        if (cam->cfg->video_pipe_motion != "") {
             MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO
                 ,_("Opening video loopback device for motion pictures"));
 
             /* vid_startpipe should get the output dimensions */
-            cam->mpipe = vlp_startpipe(cam->conf->video_pipe_motion.c_str(), cam->imgs.width, cam->imgs.height);
+            cam->mpipe = vlp_startpipe(cam->cfg->video_pipe_motion.c_str(), cam->imgs.width, cam->imgs.height);
 
             if (cam->mpipe < 0) {
                 MOTPLS_LOG(ERR, TYPE_ALL, NO_ERRNO
@@ -281,5 +296,4 @@ void vlp_init(ctx_dev *cam)
         cam->pipe = -1;
     #endif /* HAVE_V4L2 && !BSD */
 }
-
 

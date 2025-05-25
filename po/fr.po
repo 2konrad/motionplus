@@ -20,7 +20,1721 @@ msgstr ""
 msgid "Lightswitch detected"
 msgstr "Interrupteur d'éclairage détecté"
 
-#: src/movie.cpp
+#: /home/dave/source/motionplus/src/alg_sec.cpp
+#, c-format
+msgid "Error %s"
+msgstr "Les erreur %s"
+
+#: /home/dave/source/motionplus/src/alg_sec.cpp
+msgid "Disabling secondary detection"
+msgstr "Désactiver la détection secondaire"
+
+#: /home/dave/source/motionplus/src/alg_sec.cpp
+msgid "No secondary model specified."
+msgstr "Aucun modèle secondaire spécifié."
+
+#: /home/dave/source/motionplus/src/alg_sec.cpp
+#, c-format
+msgid "Failed loading model %s"
+msgstr "Échec du chargement du modèle %s"
+
+#: /home/dave/source/motionplus/src/alg_sec.cpp
+#, c-format
+msgid "Classes file not found: %s"
+msgstr "Fichier de classes introuvable : %s"
+
+#: /home/dave/source/motionplus/src/alg_sec.cpp
+msgid "Starting."
+msgstr "Départ."
+
+#: /home/dave/source/motionplus/src/alg_sec.cpp
+msgid "Exiting."
+msgstr "Sortie."
+
+#: /home/dave/source/motionplus/src/alg_sec.cpp
+msgid "Error starting algsec handler thread"
+msgstr "Erreur lors du démarrage du thread du gestionnaire algsec"
+
+#: /home/dave/source/motionplus/src/alg_sec.cpp
+msgid "Graceful shutdown of secondary detector thread failed"
+msgstr "Échec de l'arrêt progressif du thread de détection secondaire"
+
+#: /home/dave/source/motionplus/src/alg_sec.cpp
+msgid "Your computer is too slow for these settings."
+msgstr "Votre ordinateur est trop lent pour ces paramètres."
+
+#: /home/dave/source/motionplus/src/alg_sec.cpp
+msgid "Missed many frames for secondary detection."
+msgstr "De nombreuses images ont été manquées pour la détection secondaire."
+
+#: /home/dave/source/motionplus/src/alg_sec.cpp
+msgid "Your computer is too slow."
+msgstr "Votre ordinateur est trop lent."
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "daemon"
+msgstr "démon"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "setup_mode"
+msgstr "Mode de configuration"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "log_file"
+msgstr "fichier journal"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "pid_file"
+msgstr "fichier pid"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid log_level %d"
+msgstr "Niveau de journal non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "log_level"
+msgstr "niveau de journalisation"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid log_type %s"
+msgstr "Type de journal non valide %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "log_type"
+msgstr "type de journal"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "native_language"
+msgstr "langue maternelle"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "camera"
+msgstr "caméra"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "device_name"
+msgstr "nom de l'appareil"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid device_id %d"
+msgstr "ID d'appareil non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "device_id"
+msgstr "Reference de l'appareil"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid device_tmo %d"
+msgstr "Appareil non valide à %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "device_tmo"
+msgstr "temps de l'appareil"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "pause"
+msgstr "pause"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "config_dir"
+msgstr "répertoire de configuration"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid target_dir.  Conversion specifiers not permitted. %s"
+msgstr ""
+"Répertoire cible non valide. Spécificateurs de conversion non autorisés. %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "target_dir"
+msgstr "répertoire cible"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid watchdog timeout %d"
+msgstr "Délai d'expiration du chien de garde non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "watchdog_tmo"
+msgstr "chien de garde"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid watchdog kill timeout %d"
+msgstr "Délai d'expiration du chien de garde non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "watchdog_kill"
+msgstr "chien de garde tuer"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "v4l2_device"
+msgstr "appareil v4l2"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "v4l2_params"
+msgstr "paramètres v4l2"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "netcam_url"
+msgstr "URL de la caméra réseau"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "netcam_params"
+msgstr "paramètres netcam"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "netcam_high_url"
+msgstr "netcam haute url"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "netcam_high_params"
+msgstr "netcam paramètres élevés"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "netcam_userpass"
+msgstr "passe utilisateur netcam"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "libcam_device"
+msgstr "appareil libcam"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "libcam_params"
+msgstr "paramètres libcam"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid width %d"
+msgstr "Largeur non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#: /home/dave/source/motionplus/src/netcam.cpp
+#, c-format
+msgid "Image width (%d) requested is not modulo 8."
+msgstr "La largeur d'image (%d) demandée n'est pas modulo 8."
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Adjusting width to next higher multiple of 8 (%d)."
+msgstr ""
+"Ajustement de la largeur au multiple de 8 immédiatement supérieur (%d)."
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "width"
+msgstr "largeur"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid height %d"
+msgstr "Hauteur non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#: /home/dave/source/motionplus/src/netcam.cpp
+#, c-format
+msgid "Image height (%d) requested is not modulo 8."
+msgstr "La hauteur d'image (%d) demandée n'est pas modulo 8."
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#: /home/dave/source/motionplus/src/netcam.cpp
+#, c-format
+msgid "Adjusting height to next higher multiple of 8 (%d)."
+msgstr "Ajustement de la hauteur au multiple supérieur de 8 suivant (%d)."
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "height"
+msgstr "hauteur"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid framerate %d"
+msgstr "Fréquence d'images non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "framerate"
+msgstr "fréquence d'images"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid rotate %d"
+msgstr "Rotation invalide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "rotate"
+msgstr "tourner"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid flip_axis %s"
+msgstr "Inverser l'axe %s non valide"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "flip_axis"
+msgstr "retourner l'axe"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid locate_motion_mode %s"
+msgstr "Mode de mouvement de localisation non valide %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "locate_motion_mode"
+msgstr "localiser le mode mouvement"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid locate_motion_style %s"
+msgstr "Style de mouvement de localisation non valide %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "locate_motion_style"
+msgstr "localiser le style de mouvement"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "text_left"
+msgstr "texte à gauche"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "text_right"
+msgstr "texte à droite"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "text_changes"
+msgstr "modifications de texte"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid text_scale %d"
+msgstr "Échelle de texte non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "text_scale"
+msgstr "échelle du texte"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "text_event"
+msgstr "événement texte"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "emulate_motion"
+msgstr "émuler le mouvement"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid threshold %d"
+msgstr "Seuil invalide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "threshold"
+msgstr "seuil"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid threshold_maximum %d"
+msgstr "Seuil maximal invalide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "threshold_maximum"
+msgstr "seuil maximal"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid threshold_sdevx %d"
+msgstr "Seuil non valide sdevx %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "threshold_sdevx"
+msgstr "seuil sdevx"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid threshold_sdevy %d"
+msgstr "Sdevy de seuil non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "threshold_sdevy"
+msgstr "seuil sdevy"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid threshold_sdevxy %d"
+msgstr "Seuil invalide sdevxy %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "threshold_sdevxy"
+msgstr "seuil sdevxy"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid threshold_ratio %d"
+msgstr "Ratio de seuil invalide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "threshold_ratio"
+msgstr "rapport de seuil"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid threshold_ratio_change %d"
+msgstr "Changement de ratio de seuil non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "threshold_ratio_change"
+msgstr "changement de rapport de seuil"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "threshold_tune"
+msgstr "réglage du seuil"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid secondary_method %s"
+msgstr "Méthode secondaire non valide %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "secondary_method"
+msgstr "méthode secondaire"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "secondary_params"
+msgstr "paramètres secondaires"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid noise_level %d"
+msgstr "Niveau de bruit non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "noise_level"
+msgstr "niveau de bruit"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "noise_tune"
+msgstr "air de bruit"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "despeckle_filter"
+msgstr "filtre anti-taches"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "area_detect"
+msgstr "détection de zone"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "mask_file"
+msgstr "fichier masque"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "mask_privacy"
+msgstr "masque de confidentialité"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid smart_mask_speed %d"
+msgstr "Vitesse du masque intelligent non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "smart_mask_speed"
+msgstr "vitesse du masque intelligent"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid lightswitch_percent %d"
+msgstr "Pourcentage d'interrupteur d'éclairage non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "lightswitch_percent"
+msgstr "interrupteur pour cent"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid lightswitch_frames %d"
+msgstr "Images d'interrupteur d'éclairage non valides %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "lightswitch_frames"
+msgstr "cadres d'interrupteur"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid minimum_motion_frames %d"
+msgstr "Images de mouvement minimales non valides %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "minimum_motion_frames"
+msgstr "images de mouvement minimum"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid static_object_time %d"
+msgstr "Heure d'objet statique non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "static_object_time"
+msgstr "temps d'objet statique"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid event_gap %d"
+msgstr "Intervalle d'événement non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "event_gap"
+msgstr "écart d'événement"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid pre_capture %d"
+msgstr "Pré-capture invalide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "pre_capture"
+msgstr "pré capture"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid post_capture %d"
+msgstr "Post-capture non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "post_capture"
+msgstr "post-capture"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "on_event_start"
+msgstr "au début de l'événement"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "on_event_end"
+msgstr "à la fin de l'événement"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "on_picture_save"
+msgstr "sur l'enregistrement de l'image"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "on_area_detected"
+msgstr "sur la zone détectée"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "on_motion_detected"
+msgstr "sur mouvement détecté"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "on_movie_start"
+msgstr "au début du film"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "on_movie_end"
+msgstr "à la fin du film"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "on_camera_lost"
+msgstr "à la caméra perdu"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "on_camera_found"
+msgstr "à la caméra trouvé"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "on_secondary_detect"
+msgstr "sur détection secondaire"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "on_action_user"
+msgstr "sur action utilisateur"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "on_sound_alert"
+msgstr "en alerte sonore"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid picture_output %s"
+msgstr "Sortie d'image non valide %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "picture_output"
+msgstr "sortie d'image"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid picture_output_motion %s"
+msgstr "Mouvement de sortie d'image non valide %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "picture_output_motion"
+msgstr "mouvement de sortie d'image"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid picture_type %s"
+msgstr "Type d'image non valide %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "picture_type"
+msgstr "type d'image"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid picture_quality %d"
+msgstr "Qualité d'image non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "picture_quality"
+msgstr "qualité de l'image"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "picture_exif"
+msgstr "image exif"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "picture_filename"
+msgstr "nom de fichier image"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid snapshot_interval %d"
+msgstr "Intervalle d'instantané non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "snapshot_interval"
+msgstr "intervalle d'instantané"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "snapshot_filename"
+msgstr "nom de fichier de l'instantané"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "movie_output"
+msgstr "sortie vidéo"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "movie_output_motion"
+msgstr "mouvement de sortie vidéo"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid movie_max_time %d"
+msgstr "Durée maximale du film non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "movie_max_time"
+msgstr "durée max du film"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid movie_bps %d"
+msgstr "%d bps de film non valides"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "movie_bps"
+msgstr "film bps"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid movie_quality %d"
+msgstr "Qualité de film non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "movie_quality"
+msgstr "qualité du film"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "movie_container"
+msgstr "conteneur de film"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "movie_passthrough"
+msgstr "passage de film"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "movie_filename"
+msgstr "nom de fichier du film"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid movie_retain %s"
+msgstr "Film non valide conservé %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "movie_retain"
+msgstr "film conserver"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "movie_extpipe_use"
+msgstr "utilisation d'extpipe de film"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "movie_extpipe"
+msgstr "extpipe de film"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid timelapse_interval %d"
+msgstr "Intervalle de timelapse non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "timelapse_interval"
+msgstr "intervalle de temps écoulé"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid timelapse_mode %s"
+msgstr "Mode timelapse non valide %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "timelapse_mode"
+msgstr "mode accéléré"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid timelapse_fps %d"
+msgstr "Timelapse fps non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "timelapse_fps"
+msgstr "timelapse fps"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid timelapse_container %s"
+msgstr "Conteneur de timelapse non valide %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "timelapse_container"
+msgstr "conteneur timelapse"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "timelapse_filename"
+msgstr "nom du fichier timelapse"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "video_pipe"
+msgstr "tuyau vidéo"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "video_pipe_motion"
+msgstr "mouvement de tuyau vidéo"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid webcontrol_port %d"
+msgstr "Port de contrôle Web non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "webcontrol_port"
+msgstr "port de contrôle Web"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "Invalid webcontrol_base_path: Use blank instead of single / "
+msgstr ""
+"Chemin de base du contrôle Web non valide : utilisez un espace vide au lieu "
+"d'un seul /"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "Invalid webcontrol_base_path:  Must start with a / "
+msgstr "Chemin de base du contrôle Web non valide : doit commencer par un /"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "webcontrol_base_path"
+msgstr "chemin de base du contrôle Web"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "webcontrol_ipv6"
+msgstr "contrôle web ipv6"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "webcontrol_localhost"
+msgstr "hôte local de contrôle Web"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid webcontrol_parms %d"
+msgstr "Paramètres de contrôle Web non valides %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "webcontrol_parms"
+msgstr "paramètres de contrôle Web"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid webcontrol_interface %s"
+msgstr "Interface de contrôle Web non valide %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "webcontrol_interface"
+msgstr "interface de contrôle Web"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid webcontrol_auth_method %s"
+msgstr "Méthode d'authentification de contrôle Web non valide %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "webcontrol_auth_method"
+msgstr "méthode d'authentification de contrôle Web"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "webcontrol_authentication"
+msgstr "authentification de contrôle Web"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "webcontrol_tls"
+msgstr "tls de contrôle Web"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "webcontrol_cert"
+msgstr "certificat de contrôle Web"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "webcontrol_key"
+msgstr "clé de contrôle Web"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "webcontrol_headers"
+msgstr "en-têtes de contrôle Web"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "webcontrol_html"
+msgstr "html de contrôle web"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "webcontrol_actions"
+msgstr "actions de contrôle Web"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid webcontrol_lock_minutes %d"
+msgstr "Minutes de verrouillage WebControl non valides %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "webcontrol_lock_minutes"
+msgstr "minutes de verrouillage de contrôle Web"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid webcontrol_lock_attempts %d"
+msgstr "Tentatives de verrouillage du contrôle Web non valides %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "webcontrol_lock_attempts"
+msgstr "tentatives de verrouillage de contrôle Web"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid stream_preview_scale %d"
+msgstr "Échelle d'aperçu du flux non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "stream_preview_scale"
+msgstr "échelle d'aperçu du flux"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "stream_preview_newline"
+msgstr "retour à la ligne de l'aperçu du flux"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid stream_preview_method %s"
+msgstr "Méthode d'aperçu de flux non valide %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "stream_preview_method"
+msgstr "méthode de prévisualisation de flux"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "stream_preview_ptz"
+msgstr "aperçu du flux ptz"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid stream_quality %d"
+msgstr "Qualité de flux non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "stream_quality"
+msgstr "qualité du flux"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "stream_grey"
+msgstr "flux gris"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "stream_motion"
+msgstr "mouvement de flux"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid stream_maxrate %d"
+msgstr "Débit maximal de flux non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "stream_maxrate"
+msgstr "débit max du flux"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid stream_scan_time %d"
+msgstr "Heure d'analyse du flux non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "stream_scan_time"
+msgstr "durée d'analyse du flux"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid stream_scan_scale %d"
+msgstr "Échelle d'analyse de flux non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "stream_scan_scale"
+msgstr "échelle d'analyse de flux"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid database_type %s"
+msgstr "Type de base de données non valide %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "database_type"
+msgstr "type de base de données"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "database_dbname"
+msgstr "nom de la base de données"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "database_host"
+msgstr "hôte de la base de données"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid database_port %d"
+msgstr "Port de base de données non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "database_port"
+msgstr "port de la base de données"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "database_user"
+msgstr "utilisateur de la base de données"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "database_password"
+msgstr "mot de passe de la base de données"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid database_busy_timeout %d"
+msgstr "Délai d'occupation de la base de données non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "database_busy_timeout"
+msgstr "temporisation d'occupation de la base de données"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "sql_event_start"
+msgstr "début de l'événement sql"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "sql_event_end"
+msgstr "fin de l'événement sql"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "sql_movie_start"
+msgstr "début du film sql"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "sql_movie_end"
+msgstr "fin du film sql"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "sql_pic_save"
+msgstr "image sql enregistrer"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "ptz_auto_track"
+msgstr "suivi automatique ptz"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid ptz_wait %d"
+msgstr "Attente ptz non valide %d"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "ptz_wait"
+msgstr "attendre"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "ptz_move_track"
+msgstr "piste de déplacement ptz"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "ptz_pan_left"
+msgstr "panoramique ptz gauche"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "ptz_pan_right"
+msgstr "panoramique ptz à droite"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "ptz_tilt_up"
+msgstr "ptz inclinaison vers le haut"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "ptz_tilt_down"
+msgstr "ptz inclinaison vers le bas"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "ptz_zoom_in"
+msgstr "zoom avant"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "ptz_zoom_out"
+msgstr "dézoomer ptz"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "snd_device"
+msgstr "quel que soit l'appareil"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "snd_params"
+msgstr "paramètres snd"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "snd_alerts"
+msgstr "snd alertes"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Invalid snd_window %s"
+msgstr "Fenêtre snd non valide %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "snd_window"
+msgstr "et fenêtre"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "snd_show"
+msgstr "et spectacle"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Unknown config option \"%s\""
+msgstr "Option de configuration inconnue \"%s\""
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Camera config file %s not found"
+msgstr "Fichier de configuration de la caméra %s introuvable"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Sound config file %s not found"
+msgstr "Fichier de configuration audio %s introuvable"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Processing config file %s"
+msgstr "Traitement du fichier de configuration %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#: /home/dave/source/motionplus/src/util.cpp
+#, c-format
+msgid "params_file not found: %s"
+msgstr "fichier de paramètres introuvable : %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#: /home/dave/source/motionplus/src/util.cpp
+#, c-format
+msgid "Unable to parse line: %s"
+msgstr "Impossible d'analyser la ligne : %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "%-25s <redacted>"
+msgstr "%-25s <expurgé>"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "Logging configuration parameters from all files"
+msgstr "Journalisation des paramètres de configuration de tous les fichiers"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Config file: %s"
+msgstr "Fichier de configuration : %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Camera %d - Config file: %s"
+msgstr "Caméra %d - Fichier de configuration : %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Sound %d - Config file: %s"
+msgstr "Son %d - Fichier de configuration : %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Failed to write configuration to %s"
+msgstr "Impossible d'écrire la configuration dans %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+#, c-format
+msgid "Configuration written to %s"
+msgstr "Configuration écrite dans %s"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "Error getcwd"
+msgstr "Erreur getcwd"
+
+#: /home/dave/source/motionplus/src/conf.cpp
+msgid "Could not open configuration file"
+msgstr "Impossible d'ouvrir le fichier de configuration"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+msgid "Invalid database name"
+msgstr "Nom de base de données invalide"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+msgid "Must specify database port for mariadb/pgsql"
+msgstr "Doit spécifier le port de la base de données pour mariadb/pgsql"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+msgid "Must specify database name for sqlite3"
+msgstr "Doit spécifier le nom de la base de données pour sqlite3"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+msgid "Database functionality disabled."
+msgstr "Fonctionnalité de base de données désactivée."
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "SQLite error was %s"
+msgstr "L'erreur SQLite était %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "Error retrieving table columns: %s"
+msgstr "Erreur lors de la récupération des colonnes du tableau : %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "SQLite3 Database filename %s"
+msgstr "Nom de fichier de la base de données SQLite3 %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "Can't open database %s : %s"
+msgstr "Impossible d'ouvrir la base de données %s : %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "Could not initialize database %s"
+msgstr "Impossible d'initialiser la base de données %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "database_busy_timeout %d msec"
+msgstr "timeout d'occupation de la base de données %d msec"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "database_busy_timeout failed %s"
+msgstr "échec du délai d'attente d'occupation de la base de données %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "Error checking table: %s"
+msgstr "Erreur lors de la vérification de la table : %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "Error creating table: %s"
+msgstr "Erreur lors de la création de la table : %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "Error counting table: %s"
+msgstr "Table de comptage d'erreur : %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "Error retrieving table: %s"
+msgstr "Erreur lors de la récupération de la table : %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "MariaDB query '%s' failed. %s error code %d"
+msgstr "La requête MariaDB '%s' a échoué. %s code d'erreur %d"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid ""
+"Cannot reconnect to MariaDB database %s on host %s with user %s MariaDB "
+"error was %s"
+msgstr ""
+"Impossible de se reconnecter à la base de données MariaDB %s sur l'hôte %s "
+"avec l'utilisateur %s MariaDBl'erreur était %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "Re-Connection to MariaDB database '%s' Succeed"
+msgstr "Reconnexion à la base de données MariaDB '%s' réussie"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "after re-connection MariaDB query failed %s error code %d"
+msgstr "après la reconnexion, la requête MariaDB a échoué %s code d'erreur %d"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "Query error: %s"
+msgstr "Erreur de requête : %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "Query store error: %s"
+msgstr "Erreur de magasin de requête : %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+msgid "Creating motionplus table"
+msgstr "Création d'un tableau motionplus"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "Cannot connect to MariaDB database %s on host %s with user %s"
+msgstr ""
+"Impossible de se connecter à la base de données MariaDB %s sur l'hôte %s "
+"avec l'utilisateur %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "MariaDB error was %s"
+msgstr "L'erreur MariaDB était %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+msgid "Disabling database functionality"
+msgstr "Désactivation de la fonctionnalité de base de données"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "%s database opened"
+msgstr "%s base de données ouverte"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "Connection to PostgreSQL database '%s' failed: %s"
+msgstr "La connexion à la base de données PostgreSQL '%s' a échoué : %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "Re-Connection to PostgreSQL database '%s' failed: %s"
+msgstr "La reconnexion à la base de données PostgreSQL '%s' a échoué : %s"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+#, c-format
+msgid "Re-Connection to PostgreSQL database '%s' Succeed"
+msgstr "Reconnexion à la base de données PostgreSQL '%s' réussie"
+
+#: /home/dave/source/motionplus/src/dbse.cpp
+msgid "Initializing database"
+msgstr "Initialisation de la base de données"
+
+#: /home/dave/source/motionplus/src/draw.cpp
+#, c-format
+msgid "Invalid text scale.  Adjusted to %d"
+msgstr "Échelle de texte non valide. Ajusté à %d"
+
+#: /home/dave/source/motionplus/src/event.cpp
+#, c-format
+msgid "File saved to: %s"
+msgstr "Fichier enregistré dans : %s"
+
+#: /home/dave/source/motionplus/src/event.cpp
+msgid "Failed to put image into video pipe"
+msgstr "Échec de l'insertion de l'image dans le canal vidéo"
+
+#: /home/dave/source/motionplus/src/event.cpp
+msgid "Error creating image file name"
+msgstr "Erreur lors de la création du nom du fichier image"
+
+#: /home/dave/source/motionplus/src/event.cpp
+msgid "Error creating image motion file name"
+msgstr "Erreur lors de la création du nom du fichier de mouvement d'image"
+
+#: /home/dave/source/motionplus/src/event.cpp
+msgid "Error creating image motion roi file name"
+msgstr "Erreur lors de la création du nom de fichier image motion roi"
+
+#: /home/dave/source/motionplus/src/event.cpp
+msgid "Error option"
+msgstr "Options d'erreur"
+
+#: /home/dave/source/motionplus/src/event.cpp
+#, c-format
+msgid "Could not create symbolic link [%s]"
+msgstr "Impossible de créer le lien symbolique [%s]"
+
+#: /home/dave/source/motionplus/src/event.cpp
+msgid "Error creating preview file name"
+msgstr "Erreur lors de la création du nom du fichier d'aperçu"
+
+#: /home/dave/source/motionplus/src/event.cpp
+msgid "Event secondary detect"
+msgstr "Détection secondaire d'événement"
+
+#: /home/dave/source/motionplus/src/event.cpp
+#, c-format
+msgid "CLOSING: extpipe file desc %d, error state %d"
+msgstr "FERMETURE : description du fichier extpipe %d, état d'erreur %d"
+
+#: /home/dave/source/motionplus/src/event.cpp
+#, c-format
+msgid "Unable to remove file %s"
+msgstr "Impossible de supprimer le fichier %s"
+
+#: /home/dave/source/motionplus/src/event.cpp
+#, c-format
+msgid "no write access to target directory %s"
+msgstr "pas d'accès en écriture au répertoire cible %s"
+
+#: /home/dave/source/motionplus/src/event.cpp
+#, c-format
+msgid "path not found, trying to create it %s ..."
+msgstr "chemin introuvable, tentative de création %s..."
+
+#: /home/dave/source/motionplus/src/event.cpp
+#, c-format
+msgid "error accesing path %s"
+msgstr "erreur d'accès au chemin %s"
+
+#: /home/dave/source/motionplus/src/event.cpp
+#, c-format
+msgid "Error specifying command line: %s"
+msgstr "Erreur lors de la spécification de la ligne de commande : %s"
+
+#: /home/dave/source/motionplus/src/event.cpp
+#, c-format
+msgid "pipe: %s"
+msgstr "canal : %s"
+
+#: /home/dave/source/motionplus/src/event.cpp
+msgid "popen failed"
+msgstr "échec de l'ouverture"
+
+#: /home/dave/source/motionplus/src/event.cpp
+msgid "Using extpipe"
+msgstr "Utiliser un extpipe"
+
+#: /home/dave/source/motionplus/src/event.cpp
+#, c-format
+msgid "Error writing in pipe , state error %d"
+msgstr "Erreur d'écriture dans le tube , erreur d'état %d"
+
+#: /home/dave/source/motionplus/src/event.cpp
+#, c-format
+msgid "pipe %s not created or closed already "
+msgstr "canal %s non créé ou déjà fermé"
+
+#: /home/dave/source/motionplus/src/event.cpp
+msgid "Error opening ctx_dev for movie output."
+msgstr "Erreur lors de l'ouverture de ctx dev pour la sortie vidéo."
+
+#: /home/dave/source/motionplus/src/event.cpp
+#, c-format
+msgid "Error creating motion file [%s]"
+msgstr "Erreur lors de la création du fichier de mouvement [%s]"
+
+#: /home/dave/source/motionplus/src/event.cpp
+msgid "Error encoding image"
+msgstr "Erreur d'encodage de l'image"
+
+#: /home/dave/source/motionplus/src/event.cpp
+#, c-format
+msgid "Error creating timelapse file [%s]"
+msgstr "Erreur lors de la création du fichier timelapse [%s]"
+
+#: /home/dave/source/motionplus/src/jpegutils.cpp
+#, c-format
+msgid "%s: Given jpeg buffer was too small"
+msgstr "%s : le tampon jpeg indiqué était trop petit"
+
+#: /home/dave/source/motionplus/src/jpegutils.cpp
+msgid "Invalid JPEG image dimensions"
+msgstr "Dimensions d'image JPEG non valides"
+
+#: /home/dave/source/motionplus/src/jpegutils.cpp
+#, c-format
+msgid "JPEG image size %dx%d, JPEG was %dx%d"
+msgstr "Taille d'image JPEG %dx%d, JPEG était de %dx%d"
+
+#: /home/dave/source/motionplus/src/libcam.cpp
+msgid "Opening libcam"
+msgstr "Ouverture de la libcam"
+
+#: /home/dave/source/motionplus/src/libcam.cpp
+msgid "libcam failed to open"
+msgstr "libcam n'a pas pu s'ouvrir"
+
+#: /home/dave/source/motionplus/src/logger.cpp
+#, c-format
+msgid "Using default log level (%s) (%d)"
+msgstr "Utilisation du niveau de journalisation par défaut (%s) (%d)"
+
+#: /home/dave/source/motionplus/src/logger.cpp
+#, c-format
+msgid "Logging to file (%s)"
+msgstr "Connexion au fichier (%s)"
+
+#: /home/dave/source/motionplus/src/logger.cpp
+#, c-format
+msgid "Exit motion, cannot create log file %s"
+msgstr "Quitter le mouvement, impossible de créer le fichier journal %s"
+
+#: /home/dave/source/motionplus/src/logger.cpp
+msgid "Logging to syslog"
+msgstr "Se connecter à syslog"
+
+#: /home/dave/source/motionplus/src/logger.cpp
+#, c-format
+msgid "Using log type (%s) log level (%s)"
+msgstr "Utilisation du type de journal (%s) du niveau de journal (%s)"
+
+#: /home/dave/source/motionplus/src/logger.cpp
+#, c-format
+msgid "Closing logfile (%s)."
+msgstr "Fermeture du fichier journal (%s)."
+
+#: /home/dave/source/motionplus/src/camera.cpp
+#, c-format
+msgid "Resizing buffer to %d items"
+msgstr "Redimensionnement du tampon à %d éléments"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+#, c-format
+msgid "Motion detected - starting event %d"
+msgstr "Mouvement détecté - événement de démarrage %d"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+msgid "No Camera device cleanup"
+msgstr "Pas de nettoyage de l'appareil photo"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+msgid "No Camera device specified"
+msgstr "Aucun appareil photo spécifié"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+msgid "Unable to determine camera type"
+msgstr "Impossible de déterminer le type de caméra"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+#, c-format
+msgid "Image width (%d) or height(%d) requested is not modulo 8."
+msgstr ""
+"La largeur (%d) ou la hauteur (%d) de l'image demandée n'est pas modulo 8."
+
+#: /home/dave/source/motionplus/src/camera.cpp
+#, c-format
+msgid "Motion only supports width and height greater than or equal to 64 %dx%d"
+msgstr ""
+"Motion ne prend en charge que la largeur et la hauteur supérieures ou égales "
+"à 64 %dx%d"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+msgid "Substream not available.  Image sizes not modulo 16."
+msgstr "Sous-flux non disponible. Tailles d'image non modulo 16."
+
+#: /home/dave/source/motionplus/src/camera.cpp
+msgid "Pass-through processing disabled."
+msgstr "Traitement direct désactivé."
+
+#: /home/dave/source/motionplus/src/camera.cpp
+msgid "Failed to start camera."
+msgstr "Impossible de démarrer la caméra."
+
+#: /home/dave/source/motionplus/src/camera.cpp
+#: /home/dave/source/motionplus/src/sound.cpp
+msgid "Initialize"
+msgstr "Initialiser"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+#, c-format
+msgid "Camera %d started: motion detection %s"
+msgstr "Caméra %d démarrée : détection de mouvement %s"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+msgid "Disabled"
+msgstr "Désactivé"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+msgid "Enabled"
+msgstr "Activé"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+msgid "Emulating motion"
+msgstr "Émuler le mouvement"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+#, c-format
+msgid "Motion in area %d detected."
+msgstr "Mouvement dans la zone %d détecté."
+
+#: /home/dave/source/motionplus/src/camera.cpp
+msgid "Retrying until successful connection with camera"
+msgstr ""
+"Réessayer jusqu'à ce que la connexion avec l'appareil photo soit réussie"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+msgid "Resetting image buffers"
+msgstr "Réinitialiser les tampons d'image"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+msgid "Video signal re-acquired"
+msgstr "Signal vidéo réacquis"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+msgid "Video signal lost - Adding grey image"
+msgstr "Signal vidéo perdu - Ajout d'une image grise"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+msgid "Video signal still lost - Trying to close video device"
+msgstr ""
+"Signal vidéo toujours perdu - Tentative de fermeture du périphérique vidéo"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+#, c-format
+msgid "End of event %d"
+msgstr "Fin de l'événement %d"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+#, c-format
+msgid "changes after '%s': %5d"
+msgstr "changements après '%s' : %5d"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+#, c-format
+msgid " - labels: %3d"
+msgstr "- Libellés : %3d"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+#, c-format
+msgid "Changes: %5d"
+msgstr "Modifications : %5d"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+#, c-format
+msgid " - noise level: %2d"
+msgstr "- niveau de bruit : %2d"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+#, c-format
+msgid " - threshold: %d"
+msgstr "- seuil : %d"
+
+#: /home/dave/source/motionplus/src/camera.cpp
+#: /home/dave/source/motionplus/src/sound.cpp
+msgid "Exiting"
+msgstr "Sortie"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+#, c-format
+msgid "Created process id file %s. Process ID is %d"
+msgstr "Création du fichier d'ID de processus %s. L'ID de processus est %d"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+#, c-format
+msgid "Cannot create process id file (pid file) %s"
+msgstr "Impossible de créer le fichier d'ID de processus (fichier pid) %s"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "Removed process id file (pid file)."
+msgstr "Fichier d'identification de processus supprimé (fichier pid)."
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "Error removing pid file"
+msgstr "Erreur lors de la suppression du fichier pid"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "MotionPlus going to daemon mode"
+msgstr "MotionPlus passe en mode démon"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "Could not change directory"
+msgstr "Impossible de changer de répertoire"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "Device IDs are not unique."
+msgstr "Les ID d'appareil ne sont pas uniques."
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "Falling back to sequence numbers"
+msgstr "Revenir aux numéros de séquence"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "v4l2   : available"
+msgstr "v4l2 : disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "v4l2   : not available"
+msgstr "v4l2 : non disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "webp   : available"
+msgstr "webp : disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "webp   : not available"
+msgstr "webp : non disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "libcam : available"
+msgstr "libcam : disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "libcam : not available"
+msgstr "libcam : non disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "mysql  : available"
+msgstr "mysql : disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "mysql  : not available"
+msgstr "mysql : non disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "MariaDB: available"
+msgstr "MariaDB : disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "MariaDB: not available"
+msgstr "MariaDB : non disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "sqlite3: available"
+msgstr "sqlite3 : disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "sqlite3: not available"
+msgstr "sqlite3 : non disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "pgsql  : available"
+msgstr "pgsql : disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "pgsql  : not available"
+msgstr "pgsql : non disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "nls    : available"
+msgstr "nls : disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "nls    : not available"
+msgstr "nls : non disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "alsa   : available"
+msgstr "alsa : available"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "alsa   : not available"
+msgstr "alsa : non disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "fftw3  : available"
+msgstr "fftw3 : disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "fftw3  : not available"
+msgstr "fftw3 : non disponible"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "MotionPlus running as daemon process"
+msgstr "MotionPlus exécuté en tant que processus démon"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "MotionPlus running in setup mode."
+msgstr "MotionPlus fonctionnant en mode de configuration."
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "Unable to start camera thread."
+msgstr "Impossible de démarrer le fil de la caméra."
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "Unable to start sound thread."
+msgstr "Impossible de démarrer le fil audio."
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "Restarting MotionPlus."
+msgstr "Redémarrage de MotionPlus."
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "MotionPlus restarted"
+msgstr "MotionPlus redémarré"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+#, c-format
+msgid "Camera %d - Watchdog timeout."
+msgstr "Caméra %d - Délai d'expiration du chien de garde."
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+#, c-format
+msgid "Camera %d - Watchdog netcam kill."
+msgstr "Caméra %d - Netcam kill du chien de garde."
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+#, c-format
+msgid "Camera %d - Watchdog netcam_high kill."
+msgstr "Caméra %d - Watchdog netcam high kill."
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+#, c-format
+msgid "Camera %d - Watchdog kill."
+msgstr "Caméra %d - Tuer le chien de garde."
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+#, c-format
+msgid "Invalid camera specified for deletion. %d"
+msgstr "Caméra non valide spécifiée pour la suppression. %d"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+#, c-format
+msgid "Stopping %s device_id %d"
+msgstr "Arrêt de l'ID de périphérique %s %d"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+#, c-format
+msgid "Motionplus pid: %d"
+msgstr "ID Motionplus : %d"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+#, c-format
+msgid "MotionPlus camera %d restart"
+msgstr "Caméra MotionPlus %d redémarrage"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+#, c-format
+msgid "MotionPlus sound %d restart"
+msgstr "Son MotionPlus %d redémarrage"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "Motionplus devices finished"
+msgstr "Appareils Motionplus terminés"
+
+#: /home/dave/source/motionplus/src/motionplus.cpp
+msgid "MotionPlus terminating"
+msgstr "Terminaison MotionPlus"
+
+#: /home/dave/source/motionplus/src/movie.cpp
 #, c-format
 msgid "Error setting timelapse append for container %s"
 msgstr ""

@@ -82,6 +82,27 @@ AS_IF([test "${MHTTP}" != "yes" ], [
 CPPFLAGS="$HOLD_CPPFLAGS"
 
 ##############################################################################
+###  Check zlib - Required.  Needed for stream/webcontrol
+##############################################################################
+AS_IF([pkgconf zlib ], [
+    TEMP_CPPFLAGS="$TEMP_CPPFLAGS "`pkgconf --cflags zlib`
+    TEMP_LIBS="$TEMP_LIBS "`pkgconf --libs zlib`
+  ],[
+    AC_MSG_ERROR([Required package zlib not found, please check motionplus_guide.html and install necessary dependencies])
+  ]
+)
+HOLD_CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$CPPFLAGS $TEMP_CPPFLAGS"
+AC_CHECK_HEADERS(zlib.h,[ZLIB="yes"],[ZLIB="no"])
+AC_MSG_CHECKING(zlib libraries)
+AC_MSG_RESULT($ZLIB)
+AS_IF([test "${ZLIB}" != "yes" ], [
+    AC_MSG_ERROR([Required package zlib not found, please check motionplus_guide.html and install necessary dependencies])
+  ]
+)
+CPPFLAGS="$HOLD_CPPFLAGS"
+
+##############################################################################
 ###  Check setting/getting thread names
 ##############################################################################
 AC_CHECK_HEADERS(pthread_np.h,[PTHREAD_NP="yes"],[PTHREAD_NP="no"])
@@ -113,20 +134,20 @@ AC_LINK_IFELSE(
 )
 
 ##############################################################################
-###  Check XSI strerror_r.  Check for Linux/*BSD/Apple/MUSL variations
+###  Check XSI strerror_r.
 ##############################################################################
 AC_MSG_CHECKING([for XSI strerror_r])
 HOLD_CPPFLAGS="$CPPFLAGS"
 CPPFLAGS="$CPPFLAGS -Werror"
 AC_LINK_IFELSE(
-  [AC_LANG_SOURCE[
+  [AC_LANG_SOURCE([[
     #include <string.h>
     #include <errno.h>
     int main(int argc, char** argv) {
       char buf[1024];
       int ret = strerror_r(ENOMEM, buf, sizeof(buf));
       return ret;
-    }]
+    }]])
   ],[
     AC_DEFINE([XSI_STRERROR_R], [1], [Define if you have XSI strerror_r function.])
     XSI_STRERROR="yes"
@@ -364,19 +385,19 @@ AS_IF([test "${MARIADB}" = "no"], [
 ##############################################################################
 AC_ARG_WITH(mysql,
   AS_HELP_STRING([--with-mysql[=DIR]],[Build with MySQL support]),
-  [MYSQL="$withval"],
-  [MYSQL="yes"]
+  [MYSQLDB="$withval"],
+  [MYSQLDB="yes"]
 )
-MYSQL_VER=""
-AS_IF([test "${MYSQL}" = "no"], [
+MYSQLDB_VER=""
+AS_IF([test "${MYSQLDB}" = "no"], [
     AC_MSG_CHECKING(for MySQL)
     AC_MSG_RESULT(skipped)
   ],[
     TEMP_PATH=$PKG_CONFIG_PATH
     AC_MSG_CHECKING(MySQL pkgconf path)
-    AS_IF([test "${MYSQL}" != "yes"], [
-        PKG_CONFIG_PATH=${MYSQL}/lib/pkgconfig:$PKG_CONFIG_PATH
-        MYSQL="yes"
+    AS_IF([test "${MYSQLDB}" != "yes"], [
+        PKG_CONFIG_PATH=${MYSQLDB}/lib/pkgconfig:$PKG_CONFIG_PATH
+        MYSQLDB="yes"
       ]
     )
     export PKG_CONFIG_PATH
@@ -384,15 +405,16 @@ AS_IF([test "${MYSQL}" = "no"], [
 
     AC_MSG_CHECKING(for MySQL)
     AS_IF([pkgconf mysqlclient], [
-        MYSQL_VER="("`pkgconf --modversion mysqlclient`")"
+        MYSQLDB_VER="("`pkgconf --modversion mysqlclient`")"
         TEMP_CPPFLAGS="$TEMP_CPPFLAGS "`pkgconf --cflags mysqlclient`
         TEMP_LIBS="$TEMP_LIBS "`pkgconf --libs mysqlclient`
-        AC_DEFINE([HAVE_MARIADB], [1], [Define to 1 if you have MySQL/MariaDB support])
+        AC_DEFINE([HAVE_MARIADB], [1], [Define to 1 if you have MySQLDB/MariaDB support])
+        MYSQLDB="yes"
       ],[
-        MYSQL="no"
+        MYSQLDB="no"
       ]
     )
-    AC_MSG_RESULT([$MYSQL])
+    AC_MSG_RESULT([$MYSQLDB])
     PKG_CONFIG_PATH=$TEMP_PATH
     export PKG_CONFIG_PATH
   ]
@@ -403,19 +425,19 @@ AS_IF([test "${MYSQL}" = "no"], [
 ##############################################################################
 AC_ARG_WITH(pgsql,
   AS_HELP_STRING([--with-pgsql[=DIR]],[Build with PostgreSQL support]),
-  [PGSQL="$withval"],
-  [PGSQL="yes"]
+  [PGSQLDB="$withval"],
+  [PGSQLDB="yes"]
 )
-PGSQL_VER=""
-AS_IF([test "${PGSQL}" = "no"], [
+PGSQLDB_VER=""
+AS_IF([test "${PGSQLDB}" = "no"], [
     AC_MSG_CHECKING(for PostgreSQL)
     AC_MSG_RESULT(skipped)
   ],[
     TEMP_PATH=$PKG_CONFIG_PATH
     AC_MSG_CHECKING(PostgreSQL pkgconf path)
-    AS_IF([test "${PGSQL}" != "yes"], [
-        PKG_CONFIG_PATH=${PGSQL}/lib/pkgconfig:$PKG_CONFIG_PATH
-        PGSQL="yes"
+    AS_IF([test "${PGSQLDB}" != "yes"], [
+        PKG_CONFIG_PATH=${PGSQLDB}/lib/pkgconfig:$PKG_CONFIG_PATH
+        PGSQLDB="yes"
       ]
     )
     export PKG_CONFIG_PATH
@@ -423,38 +445,38 @@ AS_IF([test "${PGSQL}" = "no"], [
 
     AC_MSG_CHECKING(for PostgreSQL)
     AS_IF([pkgconf libpq], [
-        PGSQL_VER="("`pkgconf --modversion libpq`")"
+        PGSQLDB_VER="("`pkgconf --modversion libpq`")"
         TEMP_CPPFLAGS="$TEMP_CPPFLAGS "`pkgconf --cflags libpq`
         TEMP_LIBS="$TEMP_LIBS "`pkgconf --libs libpq`
-        AC_DEFINE([HAVE_PGSQL], [1], [Define to 1 if you have PostgreSQL support])
+        AC_DEFINE([HAVE_PGSQLDB], [1], [Define to 1 if you have PostgreSQL support])
       ],[
-        PGSQL="no"
+        PGSQLDB="no"
       ]
     )
-    AC_MSG_RESULT([$PGSQL])
+    AC_MSG_RESULT([$PGSQLDB])
     PKG_CONFIG_PATH=$TEMP_PATH
     export PKG_CONFIG_PATH
   ]
 )
 
 ##############################################################################
-###  Check for SQLITE3
+###  Check for SQLITE3DB
 ##############################################################################
 AC_ARG_WITH([sqlite3],
   AS_HELP_STRING([--with-sqlite3[=DIR]],[Build with sqlite3 support]),
-  [SQLITE3=$withval],
-  [SQLITE3="yes"]
+  [SQLITE3DB=$withval],
+  [SQLITE3DB="yes"]
 )
-SQLITE3_VER=""
-AS_IF([test "${SQLITE3}" = "no"], [
+SQLITE3DB_VER=""
+AS_IF([test "${SQLITE3DB}" = "no"], [
     AC_MSG_CHECKING(for SQLite3)
     AC_MSG_RESULT(skipped)
   ],[
     AC_MSG_CHECKING(SQLite3 pkgconf path)
     TEMP_PATH=$PKG_CONFIG_PATH
-    AS_IF([test "${SQLITE3}" != "yes"], [
-        PKG_CONFIG_PATH=${SQLITE3}/lib/pkgconfig:$PKG_CONFIG_PATH
-        SQLITE3="yes"
+    AS_IF([test "${SQLITE3DB}" != "yes"], [
+        PKG_CONFIG_PATH=${SQLITE3DB}/lib/pkgconfig:$PKG_CONFIG_PATH
+        SQLITE3DB="yes"
       ]
     )
     export PKG_CONFIG_PATH
@@ -462,17 +484,17 @@ AS_IF([test "${SQLITE3}" = "no"], [
 
     AC_MSG_CHECKING(for SQLite3)
     AS_IF([pkgconf sqlite3], [
-        SQLITE3_VER="("`pkgconf --modversion sqlite3`")"
+        SQLITE3DB_VER="("`pkgconf --modversion sqlite3`")"
         TEMP_CPPFLAGS="$TEMP_CPPFLAGS "`pkgconf --cflags sqlite3`
         TEMP_LIBS="$TEMP_LIBS "`pkgconf --libs sqlite3`
-        AC_DEFINE([HAVE_SQLITE3], [1], [Define to 1 if you have SQLITE3 support])
-        SQLITE3="yes"
+        AC_DEFINE([HAVE_SQLITE3DB], [1], [Define to 1 if you have SQLITE3 support])
+        SQLITE3DB="yes"
       ],[
-        SQLITE3="no"
+        SQLITE3DB="no"
       ]
     )
 
-    AC_MSG_RESULT([$SQLITE3])
+    AC_MSG_RESULT([$SQLITE3DB])
     PKG_CONFIG_PATH=$TEMP_PATH
     export PKG_CONFIG_PATH
   ]
@@ -610,13 +632,21 @@ AC_ARG_WITH([developer-flags],
     [DEVELOPER_FLAGS=$withval],
     [DEVELOPER_FLAGS=no])
 
-AS_IF([test "${DEVELOPER_FLAGS}" = "yes"], [
-    TEMP_CPPFLAGS="$TEMP_CPPFLAGS -W -pedantic -Werror -Wall -Wextra -Wconversion -Wformat -Wshadow -Wpointer-arith -Wwrite-strings -Wredundant-decls -ggdb -g3"
-  ],[
-    TEMP_CPPFLAGS="$TEMP_CPPFLAGS -W -O3 -Wall -Wextra -Wconversion -Wformat -Wshadow -Wpointer-arith -Wwrite-strings -Wredundant-decls -ggdb -g3"
-  ]
-)
+AC_ARG_WITH([clang-flags],
+    AS_HELP_STRING([--with-clang-flags],
+    [clang warning flags]),
+    [CLANG_FLAGS=$withval],
+    [CLANG_FLAGS=no])
 
+AS_IF([test "${DEVELOPER_FLAGS}" = "yes"], [
+    TEMP_CPPFLAGS="$TEMP_CPPFLAGS -W -pedantic -Werror -Wall -Wextra -Wconversion -Wformat -Wshadow -Wpointer-arith -Wwrite-strings -Wredundant-decls -Wno-sign-conversion -Wno-sign-compare -ggdb -g3"
+  ],[
+    AS_IF([test "${CLANG_FLAGS}" = "yes"], [
+      TEMP_CPPFLAGS="$TEMP_CPPFLAGS -W -pedantic -Werror -Wall -Wextra -Wconversion -Wformat -Wshadow -Wpointer-arith -Wwrite-strings -Wredundant-decls -Wno-c11-extensions -Wno-sign-conversion -Wno-sign-compare -ggdb -g3 "
+    ],[
+      TEMP_CPPFLAGS="$TEMP_CPPFLAGS -W -O3 -Wall -Wextra -Wconversion -Wformat -Wshadow -Wpointer-arith -Wwrite-strings -Wredundant-decls -Wno-sign-conversion -Wno-sign-compare -ggdb -g3 "
+    ])
+  ])
 
 CPPFLAGS="$CPPFLAGS $TEMP_CPPFLAGS"
 LIBS="$LIBS $TEMP_LIBS"
@@ -631,7 +661,7 @@ AC_CONFIG_FILES([
   data/camera3-dist.conf
   data/sound1-dist.conf
   data/motionplus-dist.conf
-  data/motionplus.service
+  data/motionplus-dist.service
 ])
 
 AC_OUTPUT
@@ -662,9 +692,9 @@ echo "webp                  : $WEBP$WEBP_VER"
 echo "libcamera             : $LIBCAM$LIBCAM_VER"
 echo "FFmpeg                : $FFMPEG$FFMPEG_VER"
 echo "OpenCV                : $OPENCV$OPENCV_VER"
-echo "SQLite3               : $SQLITE3$SQLITE3_VER"
-echo "MYSQL                 : $MYSQL$MYSQL_VER"
-echo "PostgreSQL            : $PGSQL$PGSQL_VER"
+echo "SQLite3               : $SQLITE3DB$SQLITE3DB_VER"
+echo "MYSQL                 : $MYSQLDB$MYSQLDB_VER"
+echo "PostgreSQL            : $PGSQLDB$PGSQLDB_VER"
 echo "MariaDB               : $MARIADB$MARIADB_VER"
 echo "ALSA                  : $ALSA$ALSA_VER"
 echo "PulseAudio            : $PULSE$PULSE_VER"

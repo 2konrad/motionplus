@@ -33,13 +33,12 @@
 
         class cls_libcam {
             public:
-                cls_libcam(){};
-                ~cls_libcam(){};
-                int cam_start(ctx_dev *cam);
-                void cam_stop();
-                int cam_next(ctx_image_data *img_data);
+                cls_libcam(cls_camera *p_cam);
+                ~cls_libcam();
+                int next(ctx_image_data *img_data);
+                void noimage();
             private:
-                ctx_dev     *camctx;
+                cls_camera  *cam;
                 ctx_params  *params;
 
                 std::unique_ptr<libcamera::CameraManager>          cam_mgr;
@@ -50,40 +49,43 @@
 
                 std::queue<libcamera::Request *>   req_queue;
                 libcamera::ControlList             controls;
-                ctx_imgmap              membuf0;
-                ctx_imgmap              membuf1;
-                bool                    started_cam;
-                bool                    started_mgr;
-                bool                    started_aqr;
-                bool                    started_req;
+                ctx_imgmap              membuf;
+                bool    started_cam;
+                bool    started_mgr;
+                bool    started_aqr;
+                bool    started_req;
+                int     reconnect_count;
+                void log_orientation();
+                void log_controls();
+                void log_draft();
 
-                void cam_log_orientation();
-                void cam_log_controls();
-                void cam_log_draft();
+                int libcam_start();
+                void libcam_stop();
 
-                void cam_start_params(ctx_dev *ptr);
-                int cam_start_mgr();
-                int cam_start_config();
-                int cam_start_req();
-                int cam_start_capture();
-                void cam_config_orientation();
-                void cam_config_controls();
+                void start_params();
+                int start_mgr();
+                int start_config();
+                int start_req();
+                int start_capture();
+                void config_orientation();
+                void config_controls();
+                void config_control_item(std::string pname, std::string pvalue);
                 void req_complete(libcamera::Request *request);
                 int req_add(libcamera::Request *request);
-                void cam_config_control_item(
-                    std::string pname, std::string pvalue);
+
+
         };
     #else
         #define LIBCAMVER 0
         class cls_libcam {
             public:
-                cls_libcam(){};
-                ~cls_libcam(){};
+                cls_libcam(cls_camera *p_cam);
+                ~cls_libcam();
+                int next(ctx_image_data *img_data);
+                void noimage();
+            private:
+                cls_camera  *cam;
         };
     #endif
-
-    void libcam_start (ctx_dev *cam);
-    int libcam_next (ctx_dev *cam, ctx_image_data *img_data);
-    void libcam_cleanup (ctx_dev *cam);
 
 #endif /* _INCLUDE_LIBCAM_HPP_ */

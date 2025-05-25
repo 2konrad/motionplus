@@ -1,8 +1,7 @@
 # main sources
 src/alg.cpp
-src/exif.cpp
 src/movie.cpp
-src/video_common.cpp
+src/video_convert.cpp
 src/webu_json.cpp
 src/alg_sec.cpp
 src/jpegutils.cpp
@@ -19,10 +18,9 @@ src/logger.cpp
 src/rotate.cpp
 src/webu.cpp
 src/draw.cpp
-src/motion_loop.cpp
+src/camera.cpp
 src/sound.cpp
 src/webu_file.cpp
-src/event.cpp
 src/motionplus.cpp
 src/util.cpp
 src/webu_html.cpp

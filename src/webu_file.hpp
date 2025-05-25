@@ -18,7 +18,15 @@
 
 #ifndef _INCLUDE_WEBU_FILE_HPP_
 #define _INCLUDE_WEBU_FILE_HPP_
-
-    mhdrslt webu_file_main(ctx_webui *webui);
+    class cls_webu_file {
+        public:
+            cls_webu_file(cls_webu_ans *p_webua);
+            ~cls_webu_file();
+            void main();
+        private:
+            cls_motapp      *app;
+            cls_webu        *webu;
+            cls_webu_ans    *webua;
+    };
 
 #endif /* _INCLUDE_WEBU_FILE_HPP_ */

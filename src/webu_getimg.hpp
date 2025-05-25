@@ -14,16 +14,13 @@
  *    You should have received a copy of the GNU General Public License
  *    along with MotionPlus.  If not, see <https://www.gnu.org/licenses/>.
  *
- *
 */
 
+#ifndef _INCLUDE_WEBU_GETIMG_HPP_
+#define _INCLUDE_WEBU_GETIMG_HPP_
 
-#ifndef _INCLUDE_MOTION_LOOP_HPP_
-#define _INCLUDE_MOTION_LOOP_HPP_
+    void webu_getimg_init(cls_camera *cam);
+    void webu_getimg_deinit(cls_camera *cam);
+    void webu_getimg_main(cls_camera *cam);
 
-#define MAX_RING_PROCESS_LOOPS       3
-
-void *mlp_main(void *arg);
-void mlp_cleanup(ctx_dev *cam);
-
-#endif /* _INCLUDE_MOTION_LOOP_HPP_ */
+#endif

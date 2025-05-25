@@ -20,80 +20,109 @@
 #ifndef _INCLUDE_ALG_SEC_HPP_
 #define _INCLUDE_ALG_SEC_HPP_
 
-
 #ifdef HAVE_OPENCV
     #pragma GCC diagnostic push
         #pragma GCC diagnostic ignored "-Wconversion"
-        #include "opencv2/objdetect.hpp"
-        #include "opencv2/dnn.hpp"
-        #include "opencv2/highgui.hpp"
-        #include "opencv2/imgproc.hpp"
+        #include <opencv2/objdetect.hpp>
+        #include <opencv2/dnn.hpp>
+        #include <opencv2/highgui.hpp>
+        #include <opencv2/imgproc.hpp>
+        #include <opencv2/imgcodecs.hpp>
+        #include <opencv2/videoio.hpp>
+        #include <opencv2/video.hpp>
     #pragma GCC diagnostic pop
 #endif
 
+class cls_algsec {
+    public:
+        cls_algsec(cls_camera *p_cam);
+        ~cls_algsec();
 
-struct ctx_algsec_model {
-    std::string                 config;             //Source params line
-    ctx_params                  *params;
+        void        detect();
+        bool        detected;
 
-    std::string                 model_file;
-    int                         frame_interval;
+        std::string method;
+        pthread_mutex_t mutex;
 
-    std::string                 method;
-    std::string                 image_type;
-    int                         rotate;
+        bool            handler_stop;
+        bool            handler_running;
+        pthread_t       handler_thread;
+        void            handler();
 
-    double                      scalefactor;
-    double                      threshold;          /* Threshold for motion to use on detection*/
+    private:
+        #ifdef HAVE_OPENCV
+            cls_camera      *cam;
+            bool            in_process;
+            bool            is_started;
+            bool            first_pass;
+            int             frame_cnt;
+            int             frame_missed;
+            int             too_slow;
+            u_char          *image_norm;
+            int             width;
+            int             height;
+            int             cfg_framerate;
+            int             cfg_log_level;
+            std::string     cfg_target_dir;
 
-    double                      hog_threshold_model;  /* Threshold fed into the opencv model*/
-    int                         hog_winstride;
-    int                         hog_padding;
+            void handler_startup();
+            void handler_shutdown();
 
-    int                         haar_minneighbors;
-    int                         haar_flags;
-    int                         haar_minsize;
-    int                         haar_maxsize;
+            void load_params();
+            void params_defaults();
+            void params_model();
+            void params_log();
 
-    std::string                 dnn_config;
-    std::string                 dnn_framework;
-    std::string                 dnn_classes_file;
+            void load_dnn();
+            void load_haar();
+            void load_hog();
+            void detect_dnn();
+            void detect_haar();
+            void detect_hog();
+            void get_image(cv::Mat &mat_dst);
+            void get_image_roi(cv::Mat &mat_src, cv::Mat &mat_dst);
+            void label_image(cv::Mat &mat_dst, double confidence, cv::Point classIdPoint);
+            void label_image(cv::Mat &mat_dst, std::vector<cv::Rect> &src_pos
+                , std::vector<double> &src_weights);
+            void image_show(cv::Mat &mat_dst);
+            void debug_notice(cv::Mat &mat_dst,bool isdetect);
 
-    int                         dnn_backend;
-    int                         dnn_target;
-    std::vector<std::string>    dnn_classes;
-    int                         dnn_width;
-    int                         dnn_height;
-    double                      dnn_scale;
+            std::string                 config;
+            ctx_params                  *params;
 
-    bool                        isdetected;         /* Bool reset for each image as to whether a detection occurred */
+            std::string                 model_file;
+            int                         frame_interval;
+            std::string                 image_type;
+            int                         rotate;
 
-    #ifdef HAVE_OPENCV
-        cv::CascadeClassifier   haar_cascade;       /*Haar Cascade (if applicable) */
-        cv::HOGDescriptor       hog;
-        cv::dnn::Net            net;
-    #endif
+            double                      scalefactor;
+            double                      threshold;
+
+            double                      hog_threshold_model;
+            int                         hog_winstride;
+            int                         hog_padding;
+
+            int                         haar_minneighbors;
+            int                         haar_flags;
+            int                         haar_minsize;
+            int                         haar_maxsize;
+
+            std::string                 dnn_config;
+            std::string                 dnn_framework;
+            std::string                 dnn_classes_file;
+
+            int                         dnn_backend;
+            int                         dnn_target;
+            std::vector<std::string>    dnn_classes;
+            int                         dnn_width;
+            int                         dnn_height;
+            double                      dnn_scale;
+
+            cv::CascadeClassifier   haar_cascade;       /*Haar Cascade (if applicable) */
+            cv::HOGDescriptor       hog;
+            cv::dnn::Net            net;
+        #endif
+
 };
-
-struct ctx_algsec {
-    pthread_t               threadid;        /* thread i.d. for a secondary detection thread (if required). */
-    volatile bool           thread_running;
-    volatile bool           closing;
-    volatile bool           detecting;
-    int                     frame_cnt;
-    int                     frame_missed;
-    int                     too_slow;
-    unsigned char           *image_norm;
-    int                     width;
-    int                     height;
-    bool                    isdetected;         /* Bool reset for each Motion event as to whether a detection occurred */
-    pthread_mutex_t         mutex;
-    ctx_algsec_model        models;
-};
-
-
-void algsec_detect(ctx_dev *cam);
-void algsec_init(ctx_dev *cam);
-void algsec_deinit(ctx_dev *cam);
 
 #endif /*_INCLUDE_ALG_SEC_HPP_*/

@@ -22,7 +22,9 @@ ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src po
 
 pkgsysconfdir = $(sysconfdir)/@PACKAGE@
-dist_pkgsysconf_DATA = \
+libstatedir = @localstatedir@/lib/@PACKAGE@
+
+dist_libstate_DATA = \
 	data/motionplus-dist.conf \
 	data/camera1-dist.conf \
 	data/camera2-dist.conf \
@@ -38,6 +40,13 @@ dist_doc_DATA = \
 	doc/motionplus_config.html
 
 ###################################################################
+## Clean tilde crumbs and add prefix in config file.
+###################################################################
+all-local:
+	@rm -f po/*.po\~
+	@sed -e 's|$${prefix}|$(prefix)|' data/motionplus-dist.conf > data/motionplus-dist.conf.tmp && mv -f data/motionplus-dist.conf.tmp data/motionplus-dist.conf
+
+###################################################################
 ## Create pristine directories to match exactly distributed files
 ###################################################################
 cleanall: distclean
@@ -48,35 +57,47 @@ cleanall: distclean
 	@rm -f po/Makevars.template po/quot.sed po/remove-potcdate.sin
 	@rm -f po/Rules-quot po/stamp-po po/*.gmo po/motionplus.pot po/boldquot.sed
 	@rm -f Makefile.in src/Makefile.in po/Makefile.in.in man/Makefile.in
-	@rm -f data/motionplus.service data/motionplus-dist.conf
+	@rm -f data/motionplus-dist.service data/motionplus-dist.conf
 	@rm -f data/camera1-dist.conf data/camera2-dist.conf
 	@rm -f data/camera3-dist.conf data/sound1-dist.conf
 
 ###################################################################
-## Clean out the tilde crumb files left by gettext autotool processing
+## Testing options for maintainer
 ###################################################################
-all-local:
-	@rm -f po/*.po\~
+maintainer-clang:
+	./configure --with-clang-flags CC=clang CXX=clang++ LD=clang++  && $(MAKE) clean && $(MAKE)
 
 maintainer-check:
-	./configure --with-developer-flags                   && $(MAKE) clean && $(MAKE)
-	./configure --with-developer-flags --without-opencv  && $(MAKE) clean && $(MAKE)
-	./configure --with-developer-flags --without-mariadb && $(MAKE) clean && $(MAKE)
-	./configure --with-developer-flags --without-mysql   && $(MAKE) clean && $(MAKE)
-	./configure --with-developer-flags --without-mariadb && $(MAKE) clean && $(MAKE)
-	./configure --with-developer-flags --without-sqlite3 && $(MAKE) clean && $(MAKE)
-	./configure --with-developer-flags --without-pgsql   && $(MAKE) clean && $(MAKE)
-	./configure --with-developer-flags --without-v4l2    && $(MAKE) clean && $(MAKE)
-	./configure --with-developer-flags --without-webp    && $(MAKE) clean && $(MAKE)
-	./configure --with-developer-flags --without-alsa    && $(MAKE) clean && $(MAKE)
-	./configure --with-developer-flags --without-fftw3   && $(MAKE) clean && $(MAKE)
+	./configure --with-developer-flags                   && $(MAKE) clean && $(MAKE) -j6
+	./configure --with-developer-flags --without-libcam  && $(MAKE) clean && $(MAKE) -j6
+	./configure --with-developer-flags --without-opencv  && $(MAKE) clean && $(MAKE) -j6
+	./configure --with-developer-flags --without-mariadb && $(MAKE) clean && $(MAKE) -j6
+	./configure --with-developer-flags --without-mysql   && $(MAKE) clean && $(MAKE) -j6
+	./configure --with-developer-flags --without-mariadb && $(MAKE) clean && $(MAKE) -j6
+	./configure --with-developer-flags --without-sqlite3 && $(MAKE) clean && $(MAKE) -j6
+	./configure --with-developer-flags --without-pgsql   && $(MAKE) clean && $(MAKE) -j6
+	./configure --with-developer-flags --without-v4l2    && $(MAKE) clean && $(MAKE) -j6
+	./configure --with-developer-flags --without-webp    && $(MAKE) clean && $(MAKE) -j6
+	./configure --with-developer-flags --without-alsa    && $(MAKE) clean && $(MAKE) -j6
+	./configure --with-developer-flags --without-pulse   && $(MAKE) clean && $(MAKE) -j6
+	./configure --with-developer-flags --without-fftw3   && $(MAKE) clean && $(MAKE) -j6
 	./configure --with-developer-flags \
 		--without-mysql \
 		--without-mariadb \
-		&& $(MAKE) clean && $(MAKE)
+		&& $(MAKE) clean && $(MAKE) -j6
 	./configure --with-developer-flags \
 		--without-mysql \
 		--without-mariadb \
 		--without-sqlite3 \
 		--without-pgsql \
-		&& $(MAKE) clean && $(MAKE)
+		&& $(MAKE) clean && $(MAKE) -j6
+	./configure --with-developer-flags \
+		--without-alsa \
+		--without-pulse \
+		&& $(MAKE) clean && $(MAKE) -j6
+	./configure --with-developer-flags \
+		--without-alsa \
+		--without-pulse \
+		--without-fftw3 \
+		&& $(MAKE) clean && $(MAKE) -j6
+

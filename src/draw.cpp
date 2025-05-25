@@ -16,21 +16,17 @@
  *
  */
 
-#include <ctype.h>
 #include "motionplus.hpp"
-#include "conf.hpp"
 #include "util.hpp"
+#include "camera.hpp"
+#include "conf.hpp"
 #include "logger.hpp"
+#include "alg.hpp"
 #include "draw.hpp"
 
-/* Highest ascii value is 126 (~) */
-#define ASCII_MAX 127
-
-unsigned char *char_arr_ptr[ASCII_MAX];
-
 struct draw_char {
-    unsigned char ascii;
-    unsigned char pix[8][7];
+    u_char ascii;
+    u_char pix[8][7];
 };
 
 struct draw_char draw_table[]= {
@@ -1076,15 +1072,14 @@ struct draw_char draw_table[]= {
     }
 };
 
-#define NEWLINE "\\n"
-
-static int draw_textn(unsigned char *image, int startx,  int starty,  int width
+int cls_draw::textn(u_char *image
+        , int startx,  int starty,  int width
         , const char *text, int len, int factor)
 {
 
     int x, y;
     int pos, line_offset, next_char_offs;
-    unsigned char *image_ptr, *char_ptr;
+    u_char *image_ptr, *char_ptr;
 
     if (startx > width / 2) {
         startx -= len * (6 * factor);
@@ -1139,7 +1134,8 @@ static int draw_textn(unsigned char *image, int startx,  int starty,  int width
     return 0;
 }
 
-int draw_text(unsigned char *image, int width, int height, int startx, int starty
+int cls_draw::text(u_char *image
+        , int width, int height, int startx, int starty
         , const char *text, int factor)
 {
     int num_nl = 0;
@@ -1187,18 +1183,18 @@ int draw_text(unsigned char *image, int width, int height, int startx, int start
     while ((end = strstr(end, NEWLINE))) {
         int len = (int)(end-begin);
 
-        draw_textn(image, startx, starty, width, begin, len, factor);
+        textn(image, startx, starty, width, begin, len, factor);
         end += sizeof(NEWLINE)-1;
         begin = end;
         starty += line_space;
     }
 
-    draw_textn(image, startx, starty, width, begin, (int)strlen(begin), factor);
+    textn(image, startx, starty, width, begin, (int)strlen(begin), factor);
 
     return 0;
 }
 
-int draw_init_chars(void)
+void cls_draw::init_chars(void)
 {
     unsigned int i;
     size_t draw_table_size;
@@ -1215,18 +1211,11 @@ int draw_init_chars(void)
         char_arr_ptr[(int)draw_table[i].ascii] = &draw_table[i].pix[0][0];
     }
 
-    return 0;
 }
 
-void draw_init_scale(ctx_dev *cam)
+void cls_draw::init_scale()
 {
-
-    /* Consider that web interface may change conf values at any moment.
-     * The below can put two sections in the image so make sure that after
-     * scaling does not occupy more than 1/4 of image (10 pixels * 2 lines)
-     */
-
-    cam->text_scale = cam->conf->text_scale;
+    cam->text_scale = cam->cfg->text_scale;
     if (cam->text_scale <= 0) {
         cam->text_scale = 1;
     }
@@ -1250,66 +1239,61 @@ void draw_init_scale(ctx_dev *cam)
     }
 
     /* If we had to modify the scale, change conf so we don't get another message */
-    cam->conf->text_scale = cam->text_scale;
+    cam->cfg->text_scale = cam->text_scale;
 
 }
 
-static void draw_location(ctx_coord *cent, ctx_images *imgs, int width
-        , unsigned char *new_var, int style, int mode)
+void cls_draw::location(ctx_coord *cent, ctx_images *imgs
+    , int width, u_char *new_var)
 {
-    unsigned char *out = imgs->image_motion.image_norm;
-    int x, y;
+    u_char *out = imgs->image_motion.image_norm;
+    int x, y, centy;
+    int width_miny, width_maxy;
+    int width_miny_x, width_maxy_x;
+    int width_minx_y, width_maxx_y;
 
     out = imgs->image_motion.image_norm;
 
-    /* Debug image always gets a 'normal' box. */
-    if (mode == LOCATE_BOTH) {
-        int width_miny = width * cent->miny;
-        int width_maxy = width * cent->maxy;
-
-        for (x = cent->minx; x <= cent->maxx; x++) {
-            int width_miny_x = x + width_miny;
-            int width_maxy_x = x + width_maxy;
-
-            out[width_miny_x] =~out[width_miny_x];
-            out[width_maxy_x] =~out[width_maxy_x];
-        }
-
-        for (y = cent->miny; y <= cent->maxy; y++) {
-            int width_minx_y = cent->minx + y * width;
-            int width_maxx_y = cent->maxx + y * width;
-
-            out[width_minx_y] =~out[width_minx_y];
-            out[width_maxx_y] =~out[width_maxx_y];
-        }
+    width_miny = width * cent->miny;
+    width_maxy = width * cent->maxy;
+    for (x = cent->minx; x <= cent->maxx; x++) {
+        width_miny_x = x + width_miny;
+        width_maxy_x = x + width_maxy;
+        out[width_miny_x] =~out[width_miny_x];
+        out[width_maxy_x] =~out[width_maxy_x];
     }
-    if (style == LOCATE_BOX) { /* Draw a box on normal images. */
-        int width_miny = width * cent->miny;
-        int width_maxy = width * cent->maxy;
+
+    for (y = cent->miny; y <= cent->maxy; y++) {
+        width_minx_y = cent->minx + y * width;
+        width_maxx_y = cent->maxx + y * width;
+
+        out[width_minx_y] =~out[width_minx_y];
+        out[width_maxx_y] =~out[width_maxx_y];
+    }
+
+    if (cam->cfg->locate_motion_style == "box") {
+        width_miny = width * cent->miny;
+        width_maxy = width * cent->maxy;
 
         for (x = cent->minx; x <= cent->maxx; x++) {
-            int width_miny_x = x + width_miny;
-            int width_maxy_x = x + width_maxy;
-
+            width_miny_x = x + width_miny;
+            width_maxy_x = x + width_maxy;
             new_var[width_miny_x] =~new_var[width_miny_x];
             new_var[width_maxy_x] =~new_var[width_maxy_x];
         }
 
         for (y = cent->miny; y <= cent->maxy; y++) {
-            int width_minx_y = cent->minx + y * width;
-            int width_maxx_y = cent->maxx + y * width;
-
+            width_minx_y = cent->minx + y * width;
+            width_maxx_y = cent->maxx + y * width;
             new_var[width_minx_y] =~new_var[width_minx_y];
             new_var[width_maxx_y] =~new_var[width_maxx_y];
         }
-    } else if (style == LOCATE_CROSS) { /* Draw a cross on normal images. */
-        int centy = cent->y * width;
-
+    } else if (cam->cfg->locate_motion_style == "cross") {
+        centy = cent->y * width;
         for (x = cent->x - 10;  x <= cent->x + 10; x++) {
             new_var[centy + x] =~new_var[centy + x];
             out[centy + x] =~out[centy + x];
         }
-
         for (y = cent->y - 10; y <= cent->y + 10; y++) {
             new_var[cent->x + y * width] =~new_var[cent->x + y * width];
             out[cent->x + y * width] =~out[cent->x + y * width];
@@ -1317,12 +1301,18 @@ static void draw_location(ctx_coord *cent, ctx_images *imgs, int width
     }
 }
 
-static void draw_red_location(ctx_coord *cent, ctx_images *imgs, int width
-        , unsigned char *new_var, int style, int mode)
+void cls_draw::red_location(ctx_coord *cent
+        , ctx_images *imgs, int width, u_char *new_var)
 {
-    unsigned char *out = imgs->image_motion.image_norm;
-    unsigned char *new_u, *new_v;
+    u_char *out = imgs->image_motion.image_norm;
+    u_char *new_u, *new_v;
     int x, y, v, cwidth, cblock;
+    int width_miny, width_maxy;
+    int width_miny_x, width_maxy_x;
+    int width_minx_y, width_maxx_y;
+    int cwidth_miny, cwidth_maxy;
+    int cwidth_miny_x, cwidth_maxy_x;
+    int cwidth_minx_y,cwidth_maxx_y;
 
     cwidth = width / 2;
     cblock = imgs->motionsize / 4;
@@ -1332,39 +1322,35 @@ static void draw_red_location(ctx_coord *cent, ctx_images *imgs, int width
     new_u = new_var + x;
     new_v = new_var + v;
 
-    /* Debug image always gets a 'normal' box. */
-    if (mode == LOCATE_BOTH) {
-        int width_miny = width * cent->miny;
-        int width_maxy = width * cent->maxy;
+    width_miny = width * cent->miny;
+    width_maxy = width * cent->maxy;
 
-        for (x = cent->minx; x <= cent->maxx; x++) {
-            int width_miny_x = x + width_miny;
-            int width_maxy_x = x + width_maxy;
-
-            out[width_miny_x] =~out[width_miny_x];
-            out[width_maxy_x] =~out[width_maxy_x];
-        }
-
-        for (y = cent->miny; y <= cent->maxy; y++) {
-            int width_minx_y = cent->minx + y * width;
-            int width_maxx_y = cent->maxx + y * width;
-
-            out[width_minx_y] =~out[width_minx_y];
-            out[width_maxx_y] =~out[width_maxx_y];
-        }
+    for (x = cent->minx; x <= cent->maxx; x++) {
+        width_miny_x = x + width_miny;
+        width_maxy_x = x + width_maxy;
+        out[width_miny_x] =~out[width_miny_x];
+        out[width_maxy_x] =~out[width_maxy_x];
     }
 
-    if (style == LOCATE_REDBOX) { /* Draw a red box on normal images. */
-        int width_miny = width * cent->miny;
-        int width_maxy = width * cent->maxy;
-        int cwidth_miny = cwidth * (cent->miny / 2);
-        int cwidth_maxy = cwidth * (cent->maxy / 2);
+    for (y = cent->miny; y <= cent->maxy; y++) {
+        width_minx_y = cent->minx + y * width;
+        width_maxx_y = cent->maxx + y * width;
+
+        out[width_minx_y] =~out[width_minx_y];
+        out[width_maxx_y] =~out[width_maxx_y];
+    }
+
+    if (cam->cfg->locate_motion_style == "redbox") {
+        width_miny = width * cent->miny;
+        width_maxy = width * cent->maxy;
+        cwidth_miny = cwidth * (cent->miny / 2);
+        cwidth_maxy = cwidth * (cent->maxy / 2);
 
         for (x = cent->minx + 2; x <= cent->maxx - 2; x += 2) {
-            int width_miny_x = x + width_miny;
-            int width_maxy_x = x + width_maxy;
-            int cwidth_miny_x = x / 2 + cwidth_miny;
-            int cwidth_maxy_x = x / 2 + cwidth_maxy;
+            width_miny_x = x + width_miny;
+            width_maxy_x = x + width_maxy;
+            cwidth_miny_x = x / 2 + cwidth_miny;
+            cwidth_maxy_x = x / 2 + cwidth_maxy;
 
             new_u[cwidth_miny_x] = 128;
             new_u[cwidth_maxy_x] = 128;
@@ -1385,10 +1371,10 @@ static void draw_red_location(ctx_coord *cent, ctx_images *imgs, int width
         }
 
         for (y = cent->miny; y <= cent->maxy; y += 2) {
-            int width_minx_y = cent->minx + y * width;
-            int width_maxx_y = cent->maxx + y * width;
-            int cwidth_minx_y = (cent->minx / 2) + (y / 2) * cwidth;
-            int cwidth_maxx_y = (cent->maxx / 2) + (y / 2) * cwidth;
+            width_minx_y = cent->minx + y * width;
+            width_maxx_y = cent->maxx + y * width;
+            cwidth_minx_y = (cent->minx / 2) + (y / 2) * cwidth;
+            cwidth_maxx_y = (cent->maxx / 2) + (y / 2) * cwidth;
 
             new_u[cwidth_minx_y] = 128;
             new_u[cwidth_maxx_y] = 128;
@@ -1407,65 +1393,58 @@ static void draw_red_location(ctx_coord *cent, ctx_images *imgs, int width
             new_var[width_minx_y + width + 1] = 128;
             new_var[width_maxx_y + width + 1] = 128;
         }
-    } else if (style == LOCATE_REDCROSS) { /* Draw a red cross on normal images. */
-        int cwidth_maxy = cwidth * (cent->y / 2);
+    } else if (cam->cfg->locate_motion_style == "redcross") {
+        cwidth_maxy = cwidth * (cent->y / 2);
 
         for (x = cent->x - 10; x <= cent->x + 10; x += 2) {
-            int cwidth_maxy_x = x / 2 + cwidth_maxy;
-
+            cwidth_maxy_x = x / 2 + cwidth_maxy;
             new_u[cwidth_maxy_x] = 128;
             new_v[cwidth_maxy_x] = 255;
         }
 
         for (y = cent->y - 10; y <= cent->y + 10; y += 2) {
-            int cwidth_minx_y = (cent->x / 2) + (y / 2) * cwidth;
-
+            cwidth_minx_y = (cent->x / 2) + (y / 2) * cwidth;
             new_u[cwidth_minx_y] = 128;
             new_v[cwidth_minx_y] = 255;
         }
     }
 }
 
-void draw_locate(ctx_dev *cam)
+void cls_draw::locate()
 {
     ctx_images *imgs;
-    ctx_coord *location;
-    unsigned char *image_norm;
+    ctx_coord *p_loc;
+    u_char *image_norm;
 
-    if (cam->locate_motion_mode == LOCATE_PREVIEW) {
+    if (cam->cfg->locate_motion_mode == "preview") {
         imgs = &cam->imgs;
-        location = &cam->imgs.image_preview.location;
+        p_loc = &cam->imgs.image_preview.location;
         image_norm = cam->imgs.image_preview.image_norm;
-    } else if (cam->locate_motion_mode == LOCATE_ON) {
+    } else if (cam->cfg->locate_motion_mode == "on") {
         imgs = &cam->imgs;
-        location = &cam->current_image->location;
-        image_norm = cam->current_image->image_high;
+        p_loc = &cam->current_image->location;
+        image_norm = cam->current_image->image_norm;
     } else {
         return;
     }
 
-    if (cam->locate_motion_style == LOCATE_BOX) {
-        draw_location(location, imgs, imgs->width_high
-            , image_norm, LOCATE_BOX, LOCATE_BOTH);
-    } else if (cam->locate_motion_style == LOCATE_REDBOX) {
-        draw_red_location(location, imgs, imgs->width
-            , image_norm, LOCATE_REDBOX,LOCATE_BOTH);
-    } else if (cam->locate_motion_style == LOCATE_CROSS) {
-        draw_location(location, imgs, imgs->width
-            , image_norm, LOCATE_CROSS, LOCATE_BOTH);
-    } else if (cam->locate_motion_style == LOCATE_REDCROSS) {
-        draw_red_location(location, imgs, imgs->width
-            , image_norm, LOCATE_REDCROSS, LOCATE_BOTH);
+    if ((cam->cfg->locate_motion_style == "box") ||
+        (cam->cfg->locate_motion_style == "cross")) {
+        location(p_loc, imgs, imgs->width, image_norm);
+    } else if ((cam->cfg->locate_motion_style == "redbox")||
+        (cam->cfg->locate_motion_style == "redcross")) {
+        red_location(p_loc, imgs, imgs->width, image_norm);
     }
 
 }
 
-void draw_smartmask(ctx_dev *cam, unsigned char *out)
+void cls_draw::smartmask()
 {
     int i, x, v, width, height, line;
     ctx_images *imgs = &cam->imgs;
-    unsigned char *smartmask = imgs->smartmask_final;
-    unsigned char *out_y, *out_u, *out_v;
+    u_char *mask_final = cam->alg->smartmask_final;
+    u_char *out_y, *out_u, *out_v;
+    u_char *out = cam->imgs.image_motion.image_norm;
 
     i = imgs->motionsize;
     v = i + ((imgs->motionsize) / 4);
@@ -1478,9 +1457,9 @@ void draw_smartmask(ctx_dev *cam, unsigned char *out)
     for (i = 0; i < height; i += 2) {
         line = i * width;
         for (x = 0; x < width; x += 2) {
-            if (smartmask[line + x] == 0 || smartmask[line + x + 1] == 0 ||
-                smartmask[line + width + x] == 0 ||
-                smartmask[line + width + x + 1] == 0) {
+            if (mask_final[line + x] == 0 || mask_final[line + x + 1] == 0 ||
+                mask_final[line + width + x] == 0 ||
+                mask_final[line + width + x + 1] == 0) {
 
                 *out_v = 255;
                 *out_u = 128;
@@ -1492,19 +1471,20 @@ void draw_smartmask(ctx_dev *cam, unsigned char *out)
     out_y = out;
     /* Set colour intensity for smartmask. */
     for (i = 0; i < imgs->motionsize; i++) {
-        if (smartmask[i] == 0) {
+        if (mask_final[i] == 0) {
             *out_y = 0;
         }
         out_y++;
     }
 }
 
-void draw_fixed_mask(ctx_dev *cam, unsigned char *out)
+void cls_draw::fixed_mask()
 {
     int i, x, v, width, height, line;
     ctx_images *imgs = &cam->imgs;
-    unsigned char *mask = imgs->mask;
-    unsigned char *out_y, *out_u, *out_v;
+    u_char *mask = imgs->mask;
+    u_char *out_y, *out_u, *out_v;
+    u_char *out = cam->imgs.image_motion.image_norm;
 
     i = imgs->motionsize;
     v = i + ((imgs->motionsize) / 4);
@@ -1538,12 +1518,13 @@ void draw_fixed_mask(ctx_dev *cam, unsigned char *out)
     }
 }
 
-void draw_largest_label(ctx_dev *cam, unsigned char *out)
+void cls_draw::largest_label()
 {
     int i, x, v, width, height, line;
     ctx_images *imgs = &cam->imgs;
     int *labels = imgs->labels;
-    unsigned char *out_y, *out_u, *out_v;
+    u_char *out_y, *out_u, *out_v;
+    u_char *out = cam->imgs.image_motion.image_norm;
 
     i = imgs->motionsize;
     v = i + ((imgs->motionsize) / 4);
@@ -1576,3 +1557,17 @@ void draw_largest_label(ctx_dev *cam, unsigned char *out)
         out_y++;
     }
 }
+
+cls_draw::cls_draw(cls_camera *p_cam)
+{
+    cam = p_cam;
+    init_chars();
+    init_scale();
+
+}
+
+cls_draw::~cls_draw()
+{
+
+}
+
