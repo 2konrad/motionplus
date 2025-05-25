@@ -45,75 +45,7 @@ static void *webu_mhd_init(void *cls, const char *uri, struct MHD_Connection *co
     return webua;
 }
 
-static void webu_mhd_deinit_counter(ctx_webui *webui)
-{
-    ctx_stream_data *strm;
-    ctx_dev *cam;
-    int indx, cam_max, cam_min;
-
-    if (webui->cnct_type < WEBUI_CNCT_JPG_MIN) {
-        return;
-    }
-
-    if (webui->device_id == 0) {
-        cam_min = 0;
-        cam_max = webui->motapp->cam_cnt;
-    } else if ((webui->device_id > 0) && (webui->camindx >= 0)) {
-        cam_min = webui->camindx;
-        cam_max = cam_min +1;
-    } else {
-        cam_min = 1;
-        cam_max = 0;
-    }
-
-    for (indx=cam_min; indx<cam_max; indx++) {
-        cam = webui->motapp->cam_list[indx];
-        pthread_mutex_lock(&cam->stream.mutex);
-            if ((webui->cnct_type == WEBUI_CNCT_JPG_FULL) ||
-                (webui->cnct_type == WEBUI_CNCT_TS_FULL)) {
-                strm = &cam->stream.norm;
-            } else if ( (webui->cnct_type == WEBUI_CNCT_JPG_SUB) ||
-                        (webui->cnct_type == WEBUI_CNCT_TS_SUB)) {
-                strm = &cam->stream.sub;
-            } else if ( (webui->cnct_type == WEBUI_CNCT_JPG_MOTION) ||
-                        (webui->cnct_type == WEBUI_CNCT_TS_MOTION )) {
-                strm = &cam->stream.motion;
-            } else if ( (webui->cnct_type == WEBUI_CNCT_JPG_SOURCE) ||
-                        (webui->cnct_type == WEBUI_CNCT_TS_SOURCE)) {
-                strm = &cam->stream.source;
-            } else if ( (webui->cnct_type == WEBUI_CNCT_JPG_SECONDARY) ||
-                        (webui->cnct_type == WEBUI_CNCT_TS_SECONDARY)) {
-                strm = &cam->stream.secondary;
-            } else {
-                strm = &cam->stream.norm;
-            }
-            if ((webui->cnct_type > WEBUI_CNCT_JPG_MIN) &&
-                (webui->cnct_type < WEBUI_CNCT_JPG_MAX)) {
-                if ((webui->device_id == 0) && (strm->all_cnct > 0)) {
-                    strm->all_cnct--;
-                } else if ((webui->device_id > 0) && (strm->jpg_cnct > 0)) {
-                    strm->jpg_cnct--;
-                }
-            } else if ((webui->cnct_type > WEBUI_CNCT_TS_MIN) &&
-                (webui->cnct_type < WEBUI_CNCT_TS_MAX)) {
-                if ((webui->device_id == 0) && (strm->all_cnct > 0)) {
-                    strm->all_cnct--;
-                } else if ((webui->device_id > 0) && (strm->ts_cnct > 0)) {
-                    strm->ts_cnct--;
-                }
-            }
-            if ((strm->all_cnct == 0) &&
-                (strm->jpg_cnct == 0) &&
-                (strm->ts_cnct == 0) &&
-                (cam->passflag)) {
-                    myfree(&strm->img_data);
-                    myfree(&strm->jpg_data);
-            }
-        pthread_mutex_unlock(&cam->stream.mutex);
-    }
-}
-
-/* Clean up when the MHD connection closes */
+/* Clean up our variables when the MHD connection closes */
 static void webu_mhd_deinit(void *cls, struct MHD_Connection *connection
         , void **con_cls, enum MHD_RequestTerminationCode toe)
 {

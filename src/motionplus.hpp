@@ -154,22 +154,7 @@ struct ctx_all_sizes {
     bool    reset;
 };
 
-struct ctx_all_loc {
-    int     row;
-    int     col;
-    int     offset_row;
-    int     offset_col;
-    int     offset_user_row;
-    int     offset_user_col;
-    int     scale;
-};
 
-struct ctx_all_sizes {
-    int     width;
-    int     height;
-    int     img_sz;     /* Image size*/
-    bool    reset;
-};
 
 
 struct ctx_stream_data {

@@ -812,8 +812,7 @@ void cls_netcam::hwdecoders()
 void cls_netcam::decoder_error(int retcd, const char* fnc_nm)
 {
     char errstr[128];
-    p_lst *lst = &netcam->params->params_array;
-    p_it it;
+    int indx;
 
     if (interrupted) {
         MOTPLS_LOG(ERR, TYPE_NETCAM, NO_ERRNO

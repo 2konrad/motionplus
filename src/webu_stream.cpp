@@ -466,9 +466,6 @@ void cls_webu_stream::static_one_img()
     } else {
         return;
     }
-    pthread_mutex_lock(&webui->cam->stream.mutex);
-        strm->ts_cnct++;
-    pthread_mutex_unlock(&webui->cam->stream.mutex);
 
     pthread_mutex_lock(&webua->cam->stream.mutex);
         if (strm->jpg_data == NULL) {

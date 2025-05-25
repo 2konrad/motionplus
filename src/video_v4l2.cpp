@@ -275,8 +275,6 @@ void cls_v4l2cam::set_input()
 {
     int spec, indx;
     struct v4l2_input    input;
-    p_lst *lst = &v4l2cam->params->params_array;
-    p_it it;
 
     if (fd_device == -1) {
         return;
@@ -338,8 +336,6 @@ void cls_v4l2cam::set_norm()
     int spec, indx;
     struct v4l2_standard standard;
     v4l2_std_id std_id;
-    p_lst *lst = &v4l2cam->params->params_array;
-    p_it it;
 
     if (fd_device == -1) {
         return;
@@ -406,8 +402,6 @@ void cls_v4l2cam::set_frequency()
     long spec, indx;
     struct v4l2_tuner     tuner;
     struct v4l2_frequency freq;
-    p_lst *lst = &v4l2cam->params->params_array;
-    p_it it;
 
     if (fd_device == -1) {
         return;

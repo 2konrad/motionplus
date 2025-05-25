@@ -657,18 +657,18 @@ int cls_libcam::start_req()
     const FrameBuffer::Plane &plane0_0 = buffer0->planes()[0];
     const FrameBuffer::Plane &plane0_1 = buffer1->planes()[0];
 
-    bytes = 0;
-    for (indx=0; indx<(int)buffer->planes().size(); indx++){
-        bytes += buffer->planes()[(uint)indx].length;
+    bytes0 = 0;
+    for (indx=0; indx<(int)buffer0->planes().size(); indx++){
+        bytes0 += buffer0->planes()[(uint)indx].length;
         MOTPLS_LOG(DBG, TYPE_VIDEO, NO_ERRNO, "Plane %d of %d length %d"
-            , indx, buffer->planes().size()
-            , buffer->planes()[(uint)indx].length);
+            , indx, buffer0->planes().size()
+            , buffer0->planes()[(uint)indx].length);
     }
 
-    if (bytes > cam->imgs.size_norm) {
-        width = ((int)buffer->planes()[0].length / cam->imgs.height);
-        if (((int)buffer->planes()[0].length != (width * cam->imgs.height)) ||
-            (bytes > ((width * cam->imgs.height * 3)/2))) {
+    if (bytes0 > cam->imgs.size_norm) {
+        width = ((int)buffer0->planes()[0].length / cam->imgs.height);
+        if (((int)buffer0->planes()[0].length != (width * cam->imgs.height)) ||
+            (bytes0 > ((width * cam->imgs.height * 3)/2))) {
             MOTPLS_LOG(ERR, TYPE_VIDEO, NO_ERRNO
                 , "Error setting stream 0 image size.  Plane 0 length %d, total bytes %d"
                 , buffer0->planes()[0].length, bytes0);
@@ -682,9 +682,9 @@ int cls_libcam::start_req()
         cam->imgs.motionsize = cam->imgs.width * cam->imgs.height;
     }
 
-    membuf.buf = (uint8_t *)mmap(NULL, (uint)bytes, PROT_READ
-        , MAP_SHARED, plane0.fd.get(), 0);
-    membuf.bufsz = bytes;
+    membuf.buf = (uint8_t *)mmap(NULL, (uint)bytes0, PROT_READ
+        , MAP_SHARED, plane0_0.fd.get(), 0);
+    membuf.bufsz = bytes0;
 
     requests.push_back(std::move(request));
 

@@ -405,8 +405,7 @@ mhdrslt cls_webu_mpegts::main()
 {
     mhdrslt retcd;
     struct MHD_Response *response;
-    p_lst *lst = &webui->motapp->webcontrol_headers->params_array;
-    p_it it;
+    int indx;
 
     if (webua->device_id == 0) {
         if (webus->all_ready() == false) {

@@ -717,7 +717,6 @@ static void util_parms_file(ctx_params *params, std::string params_file)
 {
     int chk, indx;
     size_t stpos;
-    p_it  it;
     std::string line, parm_nm, parm_vl;
     std::ifstream ifs;
 
@@ -1083,7 +1082,7 @@ void util_parms_update(ctx_params *params, std::string &confline)
             parmline += params->params_array[indx].param_name;
         } else {
             parmline += "\"";
-            parmline += it->param_name;
+            parmline += params->params_array[indx].param_name;
             parmline += "\"";
         }
 
@@ -1092,7 +1091,7 @@ void util_parms_update(ctx_params *params, std::string &confline)
             parmline += params->params_array[indx].param_value;
         } else {
             parmline += "\"";
-            parmline += it->param_value;
+            parmline += params->params_array[indx].param_value;
             parmline += "\"";
         }
     }

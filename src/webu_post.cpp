@@ -401,8 +401,6 @@ void cls_webu_post::action_user()
     int indx, indx2;
     cls_camera *cam;
     std::string tmp;
-    p_lst *lst = &webui->motapp->webcontrol_actions->params_array;
-    p_it it;
 
     for (indx=0;indx<webu->wb_actions->params_cnt;indx++) {
         if (webu->wb_actions->params_array[indx].param_name == "action_user") {
