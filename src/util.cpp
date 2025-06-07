@@ -407,6 +407,18 @@ void mystrftime_base(cls_camera *cam
         } else if (fmt.substr(indx,strlen("%{action_user}")) == "%{action_user}") {
             user_fmt.append(cam->action_user);
             indx += (strlen("%{action_user}")-1);
+        } else if (fmt.substr(indx,strlen("%{areadetect}")) == "%{areadetect}") {
+            //if (cam->areadetect_eventnbr == cam->event_curr_nbr) {
+                //sprintf(out, "%*s", width, "Y");
+                user_fmt.append("Y");
+            //}  else {
+            //    //sprintf(out, "%*s", width, "N");
+            //    user_fmt.append("N");
+            //}
+            indx += (strlen("%{areadetect}")-1);
+        } else if (fmt.substr(indx,strlen("%{user2}")) == "%{user2}") {
+            user_fmt.append(cam->action_user);
+            indx += (strlen("%{user2}")-1);
         } else if (fmt.substr(indx,strlen("%{secdetect}")) == "%{secdetect}") {
             if (cam->algsec->detected) {
                 user_fmt.append("Y");
@@ -619,12 +631,16 @@ AVPacket *mypacket_alloc(AVPacket *pkt)
 void util_exec_command(cls_camera *cam, const char *command, const char *filename)
 {
     char stamp[PATH_MAX];
-    int pid;
+    //int pid;
 
     mystrftime(cam, stamp, sizeof(stamp), command, filename);
 
-    pid = fork();
-    if (!pid) {
+    //wait for and stop last fork process, if if was ever set 
+    if (cam->util_exec_command_child_PID) {
+        waitpid(cam->util_exec_command_child_PID, NULL, 0);
+    }
+    cam->util_exec_command_child_PID = fork();
+    if (!cam->util_exec_command_child_PID) {
         /* Detach from parent */
         setsid();
 
@@ -635,13 +651,6 @@ void util_exec_command(cls_camera *cam, const char *command, const char *filenam
             ,_("Unable to start external command '%s'"), stamp);
 
         exit(1);
-    }
-
-    if (pid > 0) {
-        waitpid(pid, NULL, 0);
-    } else {
-        MOTPLS_LOG(ALR, TYPE_EVENTS, SHOW_ERRNO
-            ,_("Unable to start external command '%s'"), stamp);
     }
 
     MOTPLS_LOG(DBG, TYPE_EVENTS, NO_ERRNO

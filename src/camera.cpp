@@ -231,8 +231,8 @@ void cls_camera::detected_trigger()
 
             time(&raw_time);
             localtime_r(&raw_time, &evt_tm);
-            sprintf(eventid, "%05d", cfg->device_id);
-            strftime(eventid+5, 15, "%Y%m%d%H%M%S", &evt_tm);
+            //sprintf(eventid, "%05d", cfg->device_id);
+            strftime(eventid, 15, "%Y%m%d%H%M%S", &evt_tm);
 
             MOTPLS_LOG(NTC, TYPE_ALL, NO_ERRNO, _("Motion detected - starting event %d"),
                        event_curr_nbr);
@@ -1485,6 +1485,12 @@ void cls_camera::overlay()
                 , imgs.width, imgs.height
                 , imgs.width - 10, 10
                 , tmp, text_scale);
+        
+        //also put text in high video
+        draw->text(current_image->image_high
+                , imgs.width_high, imgs.height_high
+                , imgs.width_high - 10, 10
+                , tmp, text_scale);
     }
 
     if ((stream.motion.jpg_cnct > 0) ||
@@ -1519,6 +1525,11 @@ void cls_camera::overlay()
         draw->text(current_image->image_norm
                 , imgs.width, imgs.height
                 , imgs.width - 10, imgs.height - (10 * text_scale)
+                , tmp, text_scale);
+        //also put text in high video
+        draw->text(current_image->image_high
+                , imgs.width_high, imgs.height_high
+                , imgs.width_high - 10, (imgs.height_high * 0.8) - (10 * text_scale)  
                 , tmp, text_scale);
     }
 }

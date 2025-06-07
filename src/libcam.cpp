@@ -52,7 +52,7 @@ void cls_libcam::log_controls()
     MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "Libcamera Controls:");
 
     MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "  AeEnable(bool)");
-    MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "  AeLocked(bool)");
+    //MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "  AeLocked(bool)");
 
     MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "  AeMeteringMode(int)");
     MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "    MeteringCentreWeighted = 0");
@@ -176,12 +176,12 @@ void cls_libcam:: log_draft()
     MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "    ColorCorrectionAberrationFast = 1");
     MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "    ColorCorrectionAberrationHighQuality = 2");
 
-    MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "  AeState(int)");
-    MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "    AeStateSearching = 1");
-    MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "    AeStateConverged = 2");
-    MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "    AeStateLocked = 3");
-    MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "    AeStateFlashRequired = 4");
-    MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "    AeStatePrecapture = 5");
+    // MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "  AeState(int)");
+    // MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "    AeStateSearching = 1");
+    // MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "    AeStateConverged = 2");
+    // MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "    AeStateLocked = 3");
+    // MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "    AeStateFlashRequired = 4");
+    // MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "    AeStatePrecapture = 5");
 
     MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "  AwbState(int)");
     MOTPLS_SHT(DBG, TYPE_VIDEO, NO_ERRNO, "    AwbStateInactive = 0");
@@ -269,9 +269,9 @@ void cls_libcam::config_control_item(std::string pname, std::string pvalue)
     if (pname == "AeEnable") {
         controls.set(controls::AeEnable, mtob(pvalue));
     }
-    if (pname == "AeLocked") {
-        controls.set(controls::AeLocked, mtob(pvalue));
-    }
+    // if (pname == "AeLocked") {
+    //     controls.set(controls::AeLocked, mtob(pvalue));
+    // }
     if (pname == "AeMeteringMode") {
        controls.set(controls::AeMeteringMode, mtoi(pvalue));
     }
@@ -419,9 +419,9 @@ void cls_libcam::config_control_item(std::string pname, std::string pvalue)
     if (pname == "ColorCorrectionAberrationMode") {
         controls.set(controls::draft::ColorCorrectionAberrationMode, mtoi(pvalue));
     }
-    if (pname == "AeState") {
-        controls.set(controls::draft::AeState, mtoi(pvalue));
-    }
+    // if (pname == "AeState") {
+    //     controls.set(controls::draft::AeState, mtoi(pvalue));
+    // }
     if (pname == "AwbState") {
         controls.set(controls::draft::AwbState, mtoi(pvalue));
     }
@@ -439,6 +439,9 @@ void cls_libcam::config_control_item(std::string pname, std::string pvalue)
     }
     if (pname == "TestPatternMode") {
         controls.set(controls::draft::TestPatternMode, mtoi(pvalue));
+    }
+    if (pname == "HdrMode") {
+        controls.set(controls::HdrMode, mtoi(pvalue));
     }
 }
 
@@ -549,10 +552,24 @@ int cls_libcam::start_config()
     
     config->at(0).pixelFormat = PixelFormat::fromString("YUV420");
 
-    config->at(0).size.width = (uint)cam->cfg->width;
-    config->at(0).size.height = (uint)cam->cfg->height;
+    config->at(0).size.width = (uint)cam->cfg->width /2;
+    config->at(0).size.height = (uint)cam->cfg->height / 2;
     config->at(0).bufferCount = 1;
     config->at(0).stride = 0;
+    
+    config->at(1).pixelFormat = PixelFormat::fromString("YUV420");
+    config->at(1).size.width = (uint)cam->cfg->width;
+    config->at(1).size.height = (uint)cam->cfg->height;
+    config->at(1).bufferCount = 1;
+    config->at(1).stride = 0;
+
+    auto model = camera->properties().get(properties::Model);
+    if (("imx708_wide" == *model) || ("imx708" == *model)) 
+    {
+        config->sensorConfig = libcamera::SensorConfiguration();
+        config->sensorConfig->outputSize = libcamera::Size(2304, 1296);
+        config->sensorConfig->bitDepth = 10;
+    }
 
     retcd = config->validate();
     if (retcd == CameraConfiguration::Adjusted) {
@@ -587,6 +604,12 @@ int cls_libcam::start_config()
     cam->imgs.size_norm = (cam->imgs.width * cam->imgs.height * 3) / 2;
     cam->imgs.motionsize = cam->imgs.width * cam->imgs.height;
 
+    // cam size high
+    
+    cam->imgs.width_high = (int)config->at(1).size.width;
+    cam->imgs.height_high = (int)config->at(1).size.height;
+    cam->imgs.size_high = (cam->imgs.width_high * cam->imgs.height_high * 3) / 2;
+    
     log_orientation();
     log_controls();
     log_draft();
@@ -682,9 +705,33 @@ int cls_libcam::start_req()
         cam->imgs.motionsize = cam->imgs.width * cam->imgs.height;
     }
 
-    membuf.buf = (uint8_t *)mmap(NULL, (uint)bytes0, PROT_READ
-        , MAP_SHARED, plane0_0.fd.get(), 0);
-    membuf.bufsz = bytes0;
+        bytes1 = 0;
+    for (indx=0; indx<(int)buffer1->planes().size(); indx++){
+        bytes1 += buffer1->planes()[(uint)indx].length;
+        MOTPLS_LOG(DBG, TYPE_VIDEO, NO_ERRNO, "Stream 1: Plane %d of %d length %d"
+            , indx, buffer1->planes().size()
+            , buffer1->planes()[(uint)indx].length);
+    }
+
+    if (bytes1 > cam->imgs.size_high) {
+        width = (buffer1->planes()[0].length / cam->imgs.height_high);
+        if (((int)buffer1->planes()[0].length != (width * cam->imgs.height_high)) ||
+            (bytes1 > ((width * cam->imgs.height_high * 3)/2))) {
+            MOTPLS_LOG(ERR, TYPE_VIDEO, NO_ERRNO
+                , "Error setting stream 1 image size.  Plane 0 length %d, total bytes %d"
+                , buffer1->planes()[0].length, bytes1);
+        }
+        MOTPLS_LOG(NTC, TYPE_VIDEO, NO_ERRNO
+            , "stream 0 image size adjusted from %d x %d to %d x %d"
+            , cam->imgs.width_high,cam->imgs.height_high
+            , width,cam->imgs.height_high);
+        cam->imgs.width_high = width;
+        cam->imgs.size_high = (cam->imgs.width_high * cam->imgs.height_high * 3) / 2;
+    }
+    membuf0.buf = (uint8_t *)mmap(NULL, (uint)bytes0, PROT_READ, MAP_SHARED, plane0_0.fd.get(), 0);
+    membuf0.bufsz = bytes0;
+    membuf1.buf = (uint8_t *)mmap(NULL, (uint)bytes1, PROT_READ, MAP_SHARED, plane0_1.fd.get(), 0);
+    membuf1.bufsz = bytes1;
 
     requests.push_back(std::move(request));
 
@@ -855,7 +902,8 @@ int cls_libcam::next(ctx_image_data *img_data)
         if (req_queue.empty() == false) {
             Request *request = this->req_queue.front();
 
-            memcpy(img_data->image_norm, membuf.buf, (uint)membuf.bufsz);
+            memcpy(img_data->image_norm, membuf0.buf, (uint)membuf0.bufsz);
+            memcpy(img_data->image_high, membuf1.buf, (uint)membuf1.bufsz);
 
             this->req_queue.pop();
             request->reuse(Request::ReuseBuffers);

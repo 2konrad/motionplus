@@ -203,6 +203,7 @@ class cls_camera {
         enum DEVICE_STATUS      device_status;
         enum CAMERA_TYPE        camera_type;
         struct timespec         connectionlosttime;
+        int             util_exec_command_child_PID;
 
     private:
         cls_movie       *movie_norm;

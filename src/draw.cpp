@@ -1414,16 +1414,20 @@ void cls_draw::locate()
 {
     ctx_images *imgs;
     ctx_coord *p_loc;
+    ctx_coord *p_loc_high;
     u_char *image_norm;
+    u_char *image_high;
 
     if (cam->cfg->locate_motion_mode == "preview") {
         imgs = &cam->imgs;
         p_loc = &cam->imgs.image_preview.location;
         image_norm = cam->imgs.image_preview.image_norm;
+        image_norm = cam->imgs.image_preview.image_high;
     } else if (cam->cfg->locate_motion_mode == "on") {
         imgs = &cam->imgs;
         p_loc = &cam->current_image->location;
         image_norm = cam->current_image->image_norm;
+        image_high = cam->current_image->image_high;
     } else {
         return;
     }
@@ -1431,6 +1435,20 @@ void cls_draw::locate()
     if ((cam->cfg->locate_motion_style == "box") ||
         (cam->cfg->locate_motion_style == "cross")) {
         location(p_loc, imgs, imgs->width, image_norm);
+        // neue ctxcoord anlagen und werte auf img high anpassen
+        p_loc_high =(ctx_coord *) malloc(sizeof(ctx_coord));
+        p_loc_high->x = p_loc->x * 2;
+        p_loc_high->y = p_loc->y * 2;
+        p_loc_high->width = p_loc->width * 2;
+        p_loc_high->height = p_loc->height * 2;
+        p_loc_high->minx = p_loc->minx * 2;
+        p_loc_high->maxx = p_loc->maxx * 2;
+        p_loc_high->miny = p_loc->miny * 2;
+        p_loc_high->maxy = p_loc->maxy * 2;
+        // stddev_x;
+        // stddev_y;
+        // stddev_xy;
+        location(p_loc_high, imgs, imgs->width_high, image_high);
     } else if ((cam->cfg->locate_motion_style == "redbox")||
         (cam->cfg->locate_motion_style == "redcross")) {
         red_location(p_loc, imgs, imgs->width, image_norm);

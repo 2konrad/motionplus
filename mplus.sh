@@ -78,7 +78,7 @@ mv /home/pi/mplus/$1.jpg /home/pi/web/$d/$1.jpg
 
 
 echo "
-<h2 onclick='t(\"d$1\")'> ${1:5:4} $2</h2> 
+<h2 onclick='t(\"d$1\")'> ${1:8:4} $2</h2> 
 <div id='d$1' class='$hide'>
 <img id='i$1' src='$1.jpg' onclick='c(\"$1\")' ></div>
 " >> index.htm

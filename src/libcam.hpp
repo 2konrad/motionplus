@@ -49,7 +49,8 @@
 
                 std::queue<libcamera::Request *>   req_queue;
                 libcamera::ControlList             controls;
-                ctx_imgmap              membuf;
+                ctx_imgmap              membuf0;
+                ctx_imgmap              membuf1;
                 bool    started_cam;
                 bool    started_mgr;
                 bool    started_aqr;
